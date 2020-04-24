@@ -87,6 +87,7 @@ let g:airline_theme='srcery'
 let g:ale_linters = {
       \ 'cs': ['OmniSharp'],
       \ 'javascript': ['eslint'],
+      \ 'php': ['phpcs'],
       \ 'ruby': ['rubocop'],
       \ 'typescript' : ['tsserver', 'tslint'],
 \}
@@ -96,7 +97,8 @@ let g:ale_fixers = {
       \ 'ruby': ['rubocop'],
       \ 'vue': ['eslint'],
       \ 'scss': ['prettier'],
-      \ 'html': ['prettier']
+      \ 'html': ['prettier'],
+      \ 'php': ['phpcbf']
 \}
 let g:ale_fix_on_save = 1
 let g:ale_linters_explicit = 1
