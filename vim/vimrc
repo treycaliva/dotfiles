@@ -20,11 +20,12 @@ Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
 Plug 'posva/vim-vue'
 Plug 'Quramy/vim-js-pretty-template'
-Plug 'scrooloose/nerdcommenter'
-Plug 'scrooloose/nerdtree'
+" Plug 'scrooloose/nerdcommenter'
+" Plug 'scrooloose/nerdtree'
 Plug 'srcery-colors/srcery-vim'
 Plug 'stephpy/vim-yaml'
 Plug 'tpope/vim-bundler'
+Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-dadbod'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-projectionist'
@@ -48,7 +49,26 @@ call plug#end()
 colo srcery
 syntax on
 
+" General VIM settings
+set hidden                                    " Allow buffer change w/o saving
+set lazyredraw                                " Dont' update while executing macros
+set expandtab                                 " Convert <tab> to spaces (2 or 4)
+set history=1000
+set scrolloff=4
+set tabstop=2                                 " Two spaces per tab as default
+set shiftwidth=2                              "     then override with per filetype
+set softtabstop=2                             "     specific settings via autocmd
+set splitbelow
+set splitright
+
+" Leader commands
 let mapleader = " "
+map <leader>vi :tabe ~/.vimrc<cr>
+
+nmap k gk
+nmap j gj
+nmap <leader>so :source $MYVIMRC<cr>
+
 
 " Vtr stuff
 let g:VtrUseVtrMaps = 1
@@ -197,8 +217,8 @@ let g:fzf_colors =
 au! BufNewFile,BufRead *.svelte set ft=html
 
 " let g:NERDTreeWinPos = 0 
-let g:NERDTreeMinimalUI  = 1
-let g:NERDTreeShowHidden = 1
+" let g:NERDTreeMinimalUI  = 1
+" let g:NERDTreeShowHidden = 1
 
 let g:javascript_plugin_flow = 1
 
@@ -209,9 +229,6 @@ let g:netrw_winsize = 25
 let g:OmniSharp_server_stdio = 1
 
 " set formatoptions-=ro
-set tabstop=2 shiftwidth=2 expandtab
-set splitbelow
-set splitright
 
 autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
 autocmd FileType typescript setlocal formatprg=prettier\ --parser\ typescript
