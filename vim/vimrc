@@ -69,6 +69,7 @@ map <leader>vi :tabe ~/.vimrc<cr>
 nmap k gk
 nmap j gj
 nmap <leader>so :source $MYVIMRC<cr>
+nmap <leader>ca gg"*yG
 
 
 " Vtr stuff
