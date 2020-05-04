@@ -26,3 +26,14 @@ colors:
     magenta: '0xff5c8f'
     cyan:    '0x53fde9'
     white:   '0xfce8c3'
+
+font:
+  family: 'Perplexed'
+  size: 13.5
+  style: Normal
+  use_thin_strokes: true
+
+window:
+  padding:
+    x: 10
+    y: 10
