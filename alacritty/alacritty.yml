@@ -27,6 +27,11 @@ colors:
     cyan:    '0x53fde9'
     white:   '0xfce8c3'
 
+cursor:
+  style: Block
+  unfocused_hollow: true
+
+
 font:
   family: 'Perplexed'
   size: 13.5
