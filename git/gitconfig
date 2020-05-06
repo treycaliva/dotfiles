@@ -1,0 +1,11 @@
+# This is Git's per-user configuration file.
+[user]
+# Please adapt and uncomment the following lines:
+name = Trey Caliva
+email = trey.caliva@directorschoice.com
+[alias]
+	ac = !git add -A && git commit
+[http]
+	cookiefile = /Users/treycaliva/.gitcookies
+[credential "https://source.developers.google.com"]
+	helper = gcloud.sh
