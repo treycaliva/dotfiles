@@ -31,12 +31,25 @@ cursor:
   style: Block
   unfocused_hollow: true
 
-
 font:
-  family: 'Perplexed'
-  size: 13.5
-  style: Normal
+  normal:
+    family: 'BlexMono Nerd Font Mono'
+    style: Text
+  bold:
+    family: 'BlexMono Nerd Font Mono'
+    style: Bold
+  italic:
+    family: 'BlexMono Nerd Font Mono'
+    style: Italic
+  size: 14.0
   use_thin_strokes: true
+
+shell:
+  program: /bin/zsh
+  args:
+    - -l
+    - -c
+    - "tmux attach -t base || tmux new -s base"
 
 window:
   padding:

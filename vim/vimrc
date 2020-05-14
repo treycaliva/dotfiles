@@ -1,6 +1,7 @@
 call plug#begin('~/.vim/plugged')
 Plug 'airblade/vim-gitgutter'
 Plug 'Akulen/vim-dcrpc'
+Plug 'chivalry/filemaker.vim'
 Plug 'christoomey/vim-tmux-navigator'
 Plug 'christoomey/vim-tmux-runner'
 Plug 'dense-analysis/ale'
@@ -57,12 +58,13 @@ set hidden                                    " Allow buffer change w/o saving
 set lazyredraw                                " Dont' update while executing macros
 set expandtab                                 " Convert <tab> to spaces (2 or 4)
 set history=1000
+set relativenumber
 set scrolloff=4
-set tabstop=2                                 " Two spaces per tab as default
 set shiftwidth=2                              "     then override with per filetype
 set softtabstop=2                             "     specific settings via autocmd
 set splitbelow
 set splitright
+set tabstop=2                                 " Two spaces per tab as default
 
 " Leader commands
 let mapleader = " "
@@ -100,7 +102,6 @@ let g:ale_fixers = {
       \ 'ruby': ['rubocop'],
       \ 'vue': ['eslint'],
       \ 'scss': ['prettier'],
-      \ 'html': ['prettier'],
       \ 'php': ['phpcbf']
 \}
 let g:ale_fix_on_save = 1
