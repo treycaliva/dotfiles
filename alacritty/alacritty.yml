@@ -44,12 +44,12 @@ font:
   size: 14.0
   use_thin_strokes: true
 
-shell:
-  program: /bin/zsh
-  args:
-    - -l
-    - -c
-    - "tmux attach -t base || tmux new -s base"
+# shell:
+#   program: /bin/zsh
+#   args:
+#     - -l
+#     - -c
+#     - "tmux attach -t base || tmux new -s base"
 
 window:
   padding:
