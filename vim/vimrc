@@ -6,6 +6,8 @@ Plug 'christoomey/vim-tmux-navigator'
 Plug 'christoomey/vim-tmux-runner'
 Plug 'dense-analysis/ale'
 Plug 'dikiaap/minimalist'
+Plug 'dracula/vim', {'as':'dracula'}
+Plug 'elixir-editors/vim-elixir'
 Plug 'fatih/vim-go'
 Plug 'ianks/vim-tsx'
 Plug '/usr/local/opt/fzf'
@@ -50,7 +52,9 @@ Plug 'vim-ruby/vim-ruby'
 " endif
 call plug#end()
 " colo gruvbox
-colo srcery
+" colo srcery
+syntax enable
+colorscheme dracula
 syntax on
 
 " General VIM settings
