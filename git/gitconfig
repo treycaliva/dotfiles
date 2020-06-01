@@ -5,6 +5,8 @@ name = Trey Caliva
 email = trey.caliva@directorschoice.com
 [alias]
 	ac = !git add -A && git commit
+  co = !git checkout
+	rename = !git branch -m
 [http]
 	cookiefile = /Users/treycaliva/.gitcookies
 [credential "https://source.developers.google.com"]
