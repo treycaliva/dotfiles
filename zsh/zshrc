@@ -29,5 +29,7 @@ if [ -f '/Users/treycaliva/google-cloud-sdk/completion.zsh.inc' ]; then . '/User
 # source ~/.iterm2_shell_integration.zsh
 export PATH="/usr/local/anaconda3/bin:$PATH"
 chruby ruby-2.7.1
+source /usr/local/share/chruby/chruby.sh
+source /usr/local/share/chruby/auto.sh
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
