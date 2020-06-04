@@ -7,6 +7,7 @@ Plug 'christoomey/vim-tmux-runner'
 Plug 'dense-analysis/ale'
 Plug 'dikiaap/minimalist'
 Plug 'dracula/vim', {'as':'dracula'}
+Plug 'ekalinin/Dockerfile.vim'
 Plug 'elixir-editors/vim-elixir'
 Plug 'fatih/vim-go'
 Plug 'ianks/vim-tsx'
@@ -30,6 +31,7 @@ Plug 'Quramy/vim-js-pretty-template'
 Plug 'srcery-colors/srcery-vim'
 Plug 'StanAngeloff/php.vim'
 Plug 'stephpy/vim-yaml'
+Plug 'storyn26383/vim-vue'
 Plug 'tpope/vim-bundler'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-dadbod'
@@ -93,23 +95,23 @@ let g:airline_powerline_fonts = 1
 " let g:airline_theme='tomorrow'
 let g:airline_theme='srcery'
 
-let g:ale_linters = {
-      \ 'cs': ['OmniSharp'],
-      \ 'javascript': ['eslint'],
-      \ 'php': ['phpcs'],
-      \ 'ruby': ['rubocop'],
-      \ 'typescript' : ['tsserver'],
-\}
-let g:ale_fixers = {
-      \ 'javascript': ['prettier'],
-      \ 'typescript': ['prettier'],
-      \ 'ruby': ['rubocop'],
-      \ 'vue': ['eslint'],
-      \ 'scss': ['prettier'],
-      \ 'php': ['phpcbf']
-\}
-let g:ale_fix_on_save = 1
-let g:ale_linters_explicit = 1
+" let g:ale_linters = {
+"       \ 'cs': ['OmniSharp'],
+"       \ 'javascript': ['eslint'],
+"       \ 'php': ['phpcs'],
+"       \ 'ruby': ['rubocop'],
+"       \ 'typescript' : ['tsserver'],
+" \}
+" let g:ale_fixers = {
+"       \ 'javascript': ['prettier'],
+"       \ 'typescript': ['prettier'],
+"       \ 'ruby': ['rubocop'],
+"       \ 'vue': ['eslint'],
+"       \ 'scss': ['prettier'],
+"       \ 'php': ['phpcbf']
+" \}
+" let g:ale_fix_on_save = 1
+" let g:ale_linters_explicit = 1
 let g:airline#extensions#ale#enabled = 1
 
 " ======= CoC Settings ========
@@ -118,7 +120,6 @@ inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
 inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
 
 inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
-
 
 " ======= Denite Settings ========
 " try
