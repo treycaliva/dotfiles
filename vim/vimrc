@@ -10,6 +10,7 @@ Plug 'dracula/vim', {'as':'dracula'}
 Plug 'ekalinin/Dockerfile.vim'
 Plug 'elixir-editors/vim-elixir'
 Plug 'fatih/vim-go'
+Plug 'hashivim/vim-terraform'
 Plug 'ianks/vim-tsx'
 Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
