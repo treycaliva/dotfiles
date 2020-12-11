@@ -1,39 +1,42 @@
 call plug#begin('~/.vim/plugged')
 Plug 'airblade/vim-gitgutter'
 Plug 'Akulen/vim-dcrpc'
-Plug 'chivalry/filemaker.vim'
 Plug 'christoomey/vim-tmux-navigator'
 Plug 'christoomey/vim-tmux-runner'
 Plug 'dense-analysis/ale'
 Plug 'dikiaap/minimalist'
 Plug 'dracula/vim', {'as':'dracula'}
 Plug 'ekalinin/Dockerfile.vim'
-Plug 'elixir-editors/vim-elixir'
-Plug 'fatih/vim-go'
+" Plug 'fatih/vim-go'
+Plug 'godlygeek/tabular'
+Plug 'hashivim/vim-packer'
 Plug 'hashivim/vim-terraform'
-Plug 'ianks/vim-tsx'
-Plug '/usr/local/opt/fzf'
+Plug 'hashivim/vim-vagrant'
+" Plug 'ianks/vim-tsx'
+" Plug '/usr/local/opt/fzf'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() }}
 Plug 'junegunn/fzf.vim'
 Plug 'kshenoy/vim-signature'
 Plug 'leshill/vim-json'
-Plug 'leafgarland/typescript-vim'
-Plug 'leafOfTree/vim-vue-plugin'
+" Plug 'leafgarland/typescript-vim'
+" Plug 'leafOfTree/vim-vue-plugin'
 Plug 'lilydjwg/colorizer'
 Plug 'mattn/emmet-vim'
 Plug 'morhetz/gruvbox'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
-Plug 'OmniSharp/omnisharp-vim'
-Plug 'pangloss/vim-javascript'
+" Plug 'OmniSharp/omnisharp-vim'
+" Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
-Plug 'posva/vim-vue'
-Plug 'PProvost/vim-ps1'
+" Plug 'posva/vim-vue'
+" Plug 'PProvost/vim-ps1'
 Plug 'Quramy/vim-js-pretty-template'
+Plug 'Raimondi/delimitMate'
 " Plug 'scrooloose/nerdcommenter'
 " Plug 'scrooloose/nerdtree'
 Plug 'srcery-colors/srcery-vim'
-Plug 'StanAngeloff/php.vim'
+" Plug 'StanAngeloff/php.vim'
 Plug 'stephpy/vim-yaml'
-Plug 'storyn26383/vim-vue'
+" Plug 'storyn26383/vim-vue'
 Plug 'tpope/vim-bundler'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-dadbod'
@@ -73,6 +76,10 @@ set softtabstop=2                             "     specific settings via autocm
 set splitbelow
 set splitright
 set tabstop=2                                 " Two spaces per tab as default
+
+" inoremap " ""<left>
+" inoremap { {}<left>
+" inoremap [ []<left>
 
 " Leader commands
 let mapleader = " "
@@ -128,13 +135,16 @@ let g:user_emmet_leader_key=','
 
 "=== fzf settings ==="
 " File finder
-nmap <Leader>f :Files<CR>
-nmap <Leader>F :GFiles<CR>
+nmap <silent> <Leader>f :Files<CR>
+nmap <silent> <Leader>F :GFiles<CR>
 
 " Line Finder
-nmap <Leader>l :BLines<CR>
-nmap <Leader>L : Lines<CR>
-nmap <Leader>' :Marks<CR>
+nmap <silent> <Leader>l :BLines<CR>
+nmap <silent> <Leader>L : Lines<CR>
+nmap <silent> <Leader>' :Marks<CR>
+
+" Other finders
+" noremap <silent>
 
 command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --glob "!.git/*" --color "always" '.shellescape(<q-args>).'| tr -d "\017"', 1, <bang>0)
 
@@ -174,6 +184,10 @@ let g:netrw_browse_split = 2
 let g:netrw_winsize = 25
 
 let g:OmniSharp_server_stdio = 1
+
+"=== vim-terraform settings === 
+let g:terraform_align=1
+let g:terraform_fmt_on_save=1
 
 " set formatoptions-=ro
 
