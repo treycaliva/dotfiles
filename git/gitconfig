@@ -1,8 +1,8 @@
 # This is Git's per-user configuration file.
 [user]
 # Please adapt and uncomment the following lines:
-name = Trey Caliva
-email = trey.caliva@directorschoice.com
+	name = Trey Caliva
+	email = francis.caliva@e-hps.com
 [alias]
 	ac = !git add -A && git commit
   co = !git checkout
@@ -11,3 +11,5 @@ email = trey.caliva@directorschoice.com
 	cookiefile = /Users/treycaliva/.gitcookies
 [credential "https://source.developers.google.com"]
 	helper = gcloud.sh
+[pull]
+	rebase = false

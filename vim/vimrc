@@ -4,10 +4,10 @@ let data_dir = has('nvim') ? stdpath('data') . '/site' : '~/.vim'
   autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
 endif
 
-
 call plug#begin('~/.vim/plugged')
 Plug 'airblade/vim-gitgutter'
 Plug 'Akulen/vim-dcrpc'
+Plug 'burnettk/vim-jenkins'
 Plug 'christoomey/vim-tmux-navigator'
 Plug 'christoomey/vim-tmux-runner'
 Plug 'dense-analysis/ale'
@@ -23,6 +23,7 @@ Plug 'hashivim/vim-vagrant'
 " Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() }}
 Plug 'junegunn/fzf.vim'
+Plug 'kana/vim-fakeclip'
 Plug 'kshenoy/vim-signature'
 Plug 'leshill/vim-json'
 " Plug 'leafgarland/typescript-vim'
@@ -35,7 +36,7 @@ Plug 'neoclide/coc.nvim', {'branch': 'release'}
 " Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
 " Plug 'posva/vim-vue'
-" Plug 'PProvost/vim-ps1'
+Plug 'PProvost/vim-ps1'
 Plug 'Quramy/vim-js-pretty-template'
 Plug 'Raimondi/delimitMate'
 " Plug 'scrooloose/nerdcommenter'
@@ -57,6 +58,7 @@ Plug 'tpope/vim-bundler'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'vim-ruby/vim-ruby'
+Plug 'yggdroot/indentLine'
 " if has('nvim')
 "   Plug 'Shougo/denite.nvim', { 'do': ':UpdateRemotePlugins' }
 " else
@@ -97,10 +99,12 @@ nmap j gj
 nmap <leader>so :source $MYVIMRC<cr>
 nmap <leader>ca gg"*yG
 
-
 " Vtr stuff
 let g:VtrUseVtrMaps = 1
 let g:VtrOrientation = "h"
+
+" YAML stuff
+autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
 
 " ===== Plugin setup ===== "
 
@@ -195,6 +199,9 @@ let g:OmniSharp_server_stdio = 1
 "=== vim-terraform settings === 
 let g:terraform_align=1
 let g:terraform_fmt_on_save=1
+
+"=== indentLine plugin ===
+let g:indentLine_char = '⦙'
 
 " set formatoptions-=ro
 
