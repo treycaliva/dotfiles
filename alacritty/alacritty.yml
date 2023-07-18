@@ -42,16 +42,11 @@ font:
     family: 'BlexMono Nerd Font Mono'
     style: Italic
   size: 15.0
-  use_thin_strokes: true
-
-  # shell:
-  # program: /bin/zsh
-  # args:
-  #   - -l
-  #   - -c
-# - "tat"
 
 window:
   padding:
     x: 10
     y: 10
+
+key_bindings:
+  - { key: C, mods: Alt, chars: "\x1bc" }
