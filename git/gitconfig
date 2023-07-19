@@ -2,7 +2,7 @@
 [user]
 # Please adapt and uncomment the following lines:
 	name = Trey Caliva
-	email = francis.caliva@e-hps.com
+	email = treycaliva@gmail.com
 [alias]
 	ac = !git add -A && git commit
   co = !git checkout
