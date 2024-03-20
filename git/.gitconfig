@@ -2,7 +2,7 @@
 [user]
 # Please adapt and uncomment the following lines:
 	name = Trey Caliva
-	email = treycaliva@gmail.com
+	email = francis.caliva@e-hps.com
 [alias]
 	ac = !git add -A && git commit
   co = !git checkout
@@ -13,3 +13,5 @@
 	helper = gcloud.sh
 [pull]
 	rebase = false
+[push]
+  autoSetupRemote = true
