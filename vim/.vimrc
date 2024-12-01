@@ -15,7 +15,10 @@ Plug 'dikiaap/minimalist'
 Plug 'dracula/vim', {'as':'dracula'}
 Plug 'ekalinin/Dockerfile.vim'
 Plug 'fatih/vim-go'
+<<<<<<< HEAD:vim/vimrc
 Plug 'fatih/vim-hclfmt'
+=======
+>>>>>>> 09ccdbfbff7a929d6546490849f2a155153256fc:vim/.vimrc
 Plug 'godlygeek/tabular'
 Plug 'hashivim/vim-packer'
 Plug 'hashivim/vim-terraform'
@@ -40,7 +43,7 @@ Plug 'PProvost/vim-ps1'
 Plug 'Quramy/vim-js-pretty-template'
 Plug 'Raimondi/delimitMate'
 " Plug 'scrooloose/nerdcommenter'
-" Plug 'scrooloose/nerdtree'
+Plug 'scrooloose/nerdtree'
 Plug 'srcery-colors/srcery-vim'
 Plug 'stephpy/vim-yaml'
 " Plug 'storyn26383/vim-vue'
@@ -50,7 +53,7 @@ Plug 'tpope/vim-dadbod'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-projectionist'
 Plug 'tpope/vim-ragtag'
-Plug 'tpope/vim-rails'
+" Plug 'tpope/vim-rails'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-bundler'
@@ -241,4 +244,4 @@ nnoremap <leader>- :wincmd _<cr>:wincmd \|<cr>
 nnoremap <leader>= :wincmd =<cr>
 
 " FUNCTIONS
-nmap =j :%!python -m json.tool<CR>
+nmap =j :%!python3 -m json.tool<CR>

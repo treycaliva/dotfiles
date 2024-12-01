@@ -16,10 +16,18 @@ source "${ZINIT_HOME}/zinit.zsh"
 # Add in Powerlevel10k
 zinit ice depth=1; zinit light romkatv/powerlevel10k
 
+<<<<<<< HEAD:zsh/zshrc
 # Add in zsh plugins
 zinit light zsh-users/zsh-autosuggestions
 zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-syntax-highlighting
+=======
+# source ~/.iterm2_shell_integration.zsh
+export PATH="/usr/local/anaconda3/bin:$PATH"
+# chruby ruby-2.7.1
+# source /usr/local/share/chruby/chruby.sh
+# source /usr/local/share/chruby/auto.sh
+>>>>>>> 09ccdbfbff7a929d6546490849f2a155153256fc:zsh/.zshrc
 
 # history-substring-search
 zinit snippet OMZ::plugins/git/git.plugin.zsh
@@ -65,6 +73,7 @@ export PATH="$HOME/.tfenv/bin:$PATH"
 if [ -f '/Users/treycaliva/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/treycaliva/google-cloud-sdk/path.zsh.inc'; fi
 
 # The next line enables shell command completion for gcloud.
+<<<<<<< HEAD:zsh/zshrc
 if [ -f '/Users/treycaliva/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/treycaliva/google-cloud-sdk/completion.zsh.inc'; fi
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
@@ -72,3 +81,7 @@ eval "$(zoxide init zsh --cmd cd)"
 
 alias k="kubectl"
 alias ls="ls --color=auto"
+=======
+if [ -f '/Users/francis.caliva/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/francis.caliva/google-cloud-sdk/completion.zsh.inc'; fi
+export PATH="$HOME/.tfenv/bin:$PATH"
+>>>>>>> 09ccdbfbff7a929d6546490849f2a155153256fc:zsh/.zshrc
