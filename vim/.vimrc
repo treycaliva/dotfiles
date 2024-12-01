@@ -15,10 +15,7 @@ Plug 'dikiaap/minimalist'
 Plug 'dracula/vim', {'as':'dracula'}
 Plug 'ekalinin/Dockerfile.vim'
 Plug 'fatih/vim-go'
-<<<<<<< HEAD:vim/vimrc
 Plug 'fatih/vim-hclfmt'
-=======
->>>>>>> 09ccdbfbff7a929d6546490849f2a155153256fc:vim/.vimrc
 Plug 'godlygeek/tabular'
 Plug 'hashivim/vim-packer'
 Plug 'hashivim/vim-terraform'
@@ -39,12 +36,22 @@ Plug 'morhetz/gruvbox'
 " Plug 'OmniSharp/omnisharp-vim'
 " Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
+" Plug 'leafOfTree/vim-vue-plugin'
+Plug 'lilydjwg/colorizer'
+Plug 'mattn/emmet-vim'
+Plug 'morhetz/gruvbox'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" Plug 'OmniSharp/omnisharp-vim'
+" Plug 'pangloss/vim-javascript'
+Plug 'pbrisbin/vim-mkdir'
+" Plug 'posva/vim-vue'
 Plug 'PProvost/vim-ps1'
 Plug 'Quramy/vim-js-pretty-template'
 Plug 'Raimondi/delimitMate'
 " Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
 Plug 'srcery-colors/srcery-vim'
+" Plug 'StanAngeloff/php.vim'
 Plug 'stephpy/vim-yaml'
 " Plug 'storyn26383/vim-vue'
 Plug 'tpope/vim-bundler'
@@ -218,10 +225,10 @@ set number
 """ Customize colors
 func! s:my_colors_setup() abort
     " this is an example
-    hi Pmenu guibg=#58585d gui=NONE
+    hi Pmenu guibg=#d7e5dc gui=NONE
     hi PmenuSel guibg=#b7c7b7 gui=NONE
     hi PmenuSbar guibg=#bcbcbc
-    hi PmenuThumb guibg=#515151
+    hi PmenuThumb guibg=#585858
 endfunc
 
 augroup colorscheme_coc_setup | au!

@@ -42,29 +42,10 @@ font:
     family: 'BlexMono Nerd Font Mono'
     style: Italic
   size: 15.0
-<<<<<<< HEAD:alacritty/alacritty.yml
-=======
-    # use_thin_strokes: true
-
-# shell:
-#   program: /bin/zsh
-  # args:
-  #   - -l
-  #   - -c
-# - "tat"
->>>>>>> 09ccdbfbff7a929d6546490849f2a155153256fc:alacritty/.alacritty.yml
-
 window:
   padding:
     x: 10
     y: 10
-<<<<<<< HEAD:alacritty/alacritty.yml
-
 key_bindings:
   - { key: C, mods: Alt, chars: "\x1bc" }
-=======
   option_as_alt: Both
-
-    # key_bindings:
-    # - { key: C, mode: Alt, chars: "\x0bf" }
->>>>>>> 09ccdbfbff7a929d6546490849f2a155153256fc:alacritty/.alacritty.yml
