@@ -24,14 +24,13 @@ Each directory maps to a stow package. The directory structure mirrors the home 
 - **p10k** — Powerlevel10k zsh prompt theme config
 - **tmux** — Tmux config (prefix: `C-a`, vim-tmux-navigator integration) and `tat` script for session management
 - **vim** — Vim/Neovim config using vim-plug; Srcery colorscheme, CoC for completion, fzf integration, leader is `<Space>`
-- **zprezto** — Prezto zsh framework module config (sorin prompt theme)
-- **zsh** — Zsh config sourcing Prezto, with fzf, nvm, terraform, and gcloud setup
+- **zsh** — Zsh config using zinit plugin manager, Powerlevel10k prompt, with fzf, nvm, terraform, and gcloud setup
 
 ## Key Conventions
 
 - Color scheme is **Srcery** across terminal, vim, and tmux
 - Font is **BlexMono Nerd Font Mono**
 - Vim plugin manager is **vim-plug** (`~/.vim/plugged`)
-- Zsh framework is **Prezto** (not oh-my-zsh)
+- Zsh plugin manager is **zinit** (migrated from Prezto)
 - Tmux prefix is `C-a` (not default `C-b`)
 - Vim-tmux-navigator provides seamless `C-h/j/k/l` pane/split navigation between tmux and vim

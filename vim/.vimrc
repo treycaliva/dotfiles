@@ -20,7 +20,6 @@ Plug 'godlygeek/tabular'
 Plug 'hashivim/vim-packer'
 Plug 'hashivim/vim-terraform'
 Plug 'hashivim/vim-vagrant'
-" Plug '/usr/local/opt/fzf'
 Plug 'jvirtanen/vim-hcl'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() }}
 Plug 'junegunn/fzf.vim'
@@ -31,15 +30,10 @@ Plug 'lilydjwg/colorizer'
 Plug 'mattn/emmet-vim'
 Plug 'morhetz/gruvbox'
 Plug 'pbrisbin/vim-mkdir'
-Plug 'lilydjwg/colorizer'
-Plug 'mattn/emmet-vim'
-Plug 'morhetz/gruvbox'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
-Plug 'pbrisbin/vim-mkdir'
 Plug 'PProvost/vim-ps1'
 Plug 'Quramy/vim-js-pretty-template'
 Plug 'Raimondi/delimitMate'
-" Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
 Plug 'srcery-colors/srcery-vim'
 Plug 'stephpy/vim-yaml'
@@ -49,20 +43,15 @@ Plug 'tpope/vim-dadbod'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-projectionist'
 Plug 'tpope/vim-ragtag'
-" Plug 'tpope/vim-rails'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
-Plug 'tpope/vim-bundler'
 Plug 'uarun/vim-protobuf'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'vim-ruby/vim-ruby'
 Plug 'yggdroot/indentLine'
 call plug#end()
-" colo gruvbox
-" colo srcery
 syntax enable
-" colorscheme srcery
 syntax on
 
 " General VIM settings
@@ -78,9 +67,6 @@ set splitbelow
 set splitright
 set tabstop=2                                 " Two spaces per tab as default
 
-" inoremap " ""<left>
-" inoremap { {}<left>
-" inoremap [ []<left>
 
 " Leader commands
 let mapleader = " "
@@ -104,7 +90,6 @@ autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
 " air-line
 let g:airline_powerline_fonts = 1
 
-" let g:airline_theme='tomorrow'
 let g:airline_theme='srcery'
 
 
@@ -129,7 +114,6 @@ nmap <silent> <Leader>L : Lines<CR>
 nmap <silent> <Leader>' :Marks<CR>
 
 " Other finders
-" noremap <silent>
 
 command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --glob "!.git/*" --color "always" '.shellescape(<q-args>).'| tr -d "\017"', 1, <bang>0)
 
@@ -173,7 +157,6 @@ let g:terraform_fmt_on_save=1
 "=== indentLine plugin ===
 let g:indentLine_char = '⦙'
 
-" set formatoptions-=ro
 
 autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
 autocmd FileType typescript setlocal formatprg=prettier\ --parser\ typescript
@@ -193,14 +176,12 @@ endfunc
 
 augroup colorscheme_coc_setup | au!
     au ColorScheme * call s:my_colors_setup()
-augroup EN
+augroup END
 
 " ======= color settings =======
 let g:srcery_italic = 1
-" colorscheme srcery
 colorscheme srcery
-" set guifont=IBM\ Plex\ Mono:h13
-set guifont=Perplexed:h13
+set guifont=BlexMono\ Nerd\ Font\ Mono:h13
 set guicursor=
 
 
