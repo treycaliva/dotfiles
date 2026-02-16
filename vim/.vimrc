@@ -20,7 +20,6 @@ Plug 'godlygeek/tabular'
 Plug 'hashivim/vim-packer'
 Plug 'hashivim/vim-terraform'
 Plug 'hashivim/vim-vagrant'
-" Plug 'ianks/vim-tsx'
 " Plug '/usr/local/opt/fzf'
 Plug 'jvirtanen/vim-hcl'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() }}
@@ -28,32 +27,22 @@ Plug 'junegunn/fzf.vim'
 Plug 'kana/vim-fakeclip'
 Plug 'kshenoy/vim-signature'
 Plug 'leshill/vim-json'
-" Plug 'leafgarland/typescript-vim'
 Plug 'lilydjwg/colorizer'
 Plug 'mattn/emmet-vim'
 Plug 'morhetz/gruvbox'
-" Plug 'neoclide/coc.nvim', {'branch': 'release'}
-" Plug 'OmniSharp/omnisharp-vim'
-" Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
-" Plug 'leafOfTree/vim-vue-plugin'
 Plug 'lilydjwg/colorizer'
 Plug 'mattn/emmet-vim'
 Plug 'morhetz/gruvbox'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
-" Plug 'OmniSharp/omnisharp-vim'
-" Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
-" Plug 'posva/vim-vue'
 Plug 'PProvost/vim-ps1'
 Plug 'Quramy/vim-js-pretty-template'
 Plug 'Raimondi/delimitMate'
 " Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
 Plug 'srcery-colors/srcery-vim'
-" Plug 'StanAngeloff/php.vim'
 Plug 'stephpy/vim-yaml'
-" Plug 'storyn26383/vim-vue'
 Plug 'tpope/vim-bundler'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-dadbod'
@@ -69,13 +58,6 @@ Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'vim-ruby/vim-ruby'
 Plug 'yggdroot/indentLine'
-" if has('nvim')
-"   Plug 'Shougo/denite.nvim', { 'do': ':UpdateRemotePlugins' }
-" else
-"   Plug 'Shougo/denite.nvim'
-"   Plug 'roxma/nvim-yarp'
-"   Plug 'roxma/vim-hug-neovim-rpc'
-" endif
 call plug#end()
 " colo gruvbox
 " colo srcery
@@ -125,24 +107,6 @@ let g:airline_powerline_fonts = 1
 " let g:airline_theme='tomorrow'
 let g:airline_theme='srcery'
 
-" let g:ale_linters = {
-"       \ 'cs': ['OmniSharp'],
-"       \ 'javascript': ['eslint'],
-"       \ 'php': ['phpcs'],
-"       \ 'ruby': ['rubocop'],
-"       \ 'typescript' : ['tsserver'],
-" \}
-" let g:ale_fixers = {
-"       \ 'javascript': ['prettier'],
-"       \ 'typescript': ['prettier'],
-"       \ 'ruby': ['rubocop'],
-"       \ 'vue': ['eslint'],
-"       \ 'scss': ['prettier'],
-"       \ 'php': ['phpcbf']
-" \}
-" let g:ale_fix_on_save = 1
-" let g:ale_linters_explicit = 1
-" let g:airline#extensions#ale#enabled = 1
 
 " ======= CoC Settings ========
 " use <Tab> and <S-Tab> to navigate the trigger list
@@ -193,10 +157,6 @@ let g:fzf_colors =
 
 "=== Treat all svelte files as HTML ==="
 au! BufNewFile,BufRead *.svelte set ft=html
-
-" let g:NERDTreeWinPos = 0 
-" let g:NERDTreeMinimalUI  = 1
-" let g:NERDTreeShowHidden = 1
 
 let g:javascript_plugin_flow = 1
 

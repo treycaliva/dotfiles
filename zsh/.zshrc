@@ -20,11 +20,7 @@ zinit ice depth=1; zinit light romkatv/powerlevel10k
 zinit light zsh-users/zsh-autosuggestions
 zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-syntax-highlighting
-# source ~/.iterm2_shell_integration.zsh
 export PATH="/usr/local/anaconda3/bin:$PATH"
-# chruby ruby-2.7.1
-# source /usr/local/share/chruby/chruby.sh
-# source /usr/local/share/chruby/auto.sh
 
 # history-substring-search
 zinit snippet OMZ::plugins/git/git.plugin.zsh
@@ -80,24 +76,10 @@ alias ls="ls --color=auto"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-GOPATH=$HOME/go
-export PATH=$PATH:/usr/local/go/bin
-# function _update_ps1() {
-#   PS1="$($GOPATH/bin/powerline-go -error $?)"
-# }
-# if [ "$TERM" != "linux" ] && [ -f "$GOPATH/bin/powerline-go" ]; then
-#   PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
-# fi
-
-autoload -U +X bashcompinit && bashcompinit
-complete -o nospace -C /usr/local/bin/terraform terraform
-
 alias fd=fdfind
-export PATH="$HOME/.tfenv/bin:$PATH"
 
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/francis.caliva/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/francis.caliva/google-cloud-sdk/path.zsh.inc'; fi
+if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/google-cloud-sdk/path.zsh.inc"; fi
 
 # The next line enables shell command completion for gcloud.
-if [ -f '/Users/francis.caliva/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/francis.caliva/google-cloud-sdk/completion.zsh.inc'; fi
-export PATH="$HOME/.tfenv/bin:$PATH"
+if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/google-cloud-sdk/completion.zsh.inc"; fi
