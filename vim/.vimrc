@@ -26,6 +26,7 @@ Plug 'jvirtanen/vim-hcl'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() }}
 Plug 'junegunn/fzf.vim'
 Plug 'kana/vim-fakeclip'
+Plug 'kiddos/gemini.nvim'
 Plug 'kshenoy/vim-signature'
 Plug 'leshill/vim-json'
 " Plug 'leafgarland/typescript-vim'
@@ -40,7 +41,7 @@ Plug 'pbrisbin/vim-mkdir'
 Plug 'lilydjwg/colorizer'
 Plug 'mattn/emmet-vim'
 Plug 'morhetz/gruvbox'
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" Plug 'neoclide/coc.nvim', {'branch': 'release'}
 " Plug 'OmniSharp/omnisharp-vim'
 " Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
@@ -225,10 +226,10 @@ set number
 """ Customize colors
 func! s:my_colors_setup() abort
     " this is an example
-    hi Pmenu guibg=#d7e5dc gui=NONE
+    hi Pmenu guibg=#58585d gui=NONE
     hi PmenuSel guibg=#b7c7b7 gui=NONE
     hi PmenuSbar guibg=#bcbcbc
-    hi PmenuThumb guibg=#585858
+    hi PmenuThumb guibg=#515151
 endfunc
 
 augroup colorscheme_coc_setup | au!
