@@ -310,6 +310,28 @@ stow_pkg() {
     return 0
 }
 
+# ── Package list ──────────────────────────────────────────────────────
+PACKAGES="zsh tmux vim nvim alacritty git p10k zprezto"
+
+# ── Interactive menu ─────────────────────────────────────────────────
+show_menu() {
+    printf '\n%s%s Available packages:%s\n\n' "$FMT_BOLD" "$FMT_GREEN" "$FMT_RESET"
+
+    _i=1
+    for _pkg in $PACKAGES; do
+        if is_stowed "$_pkg"; then
+            _status="${FMT_GREEN}(installed)${FMT_RESET}"
+        else
+            _status="${FMT_YELLOW}(not installed)${FMT_RESET}"
+        fi
+        printf '  [%d] %-12s %s\n' "$_i" "$_pkg" "$_status"
+        _i=$(( _i + 1 ))
+    done
+
+    printf '\n  [a] Install all    [q] Quit\n\n'
+    printf 'Enter choices (e.g. 3 4 or a): '
+}
+
 # ── Main ──────────────────────────────────────────────────────────────
 main() {
     info "Dotfiles directory: ${FMT_BOLD}${DOTFILES_DIR}${FMT_RESET}"
@@ -323,6 +345,72 @@ main() {
     ensure_stow
 
     info "All prerequisites satisfied."
+
+    show_menu
+    read -r _choices </dev/tty
+
+    # Handle quit
+    case "$_choices" in
+        q|Q) info "Goodbye."; exit 0 ;;
+    esac
+
+    # Build the selection list
+    _selected=""
+    case "$_choices" in
+        a|A)
+            _selected="$PACKAGES"
+            ;;
+        *)
+            for _num in $_choices; do
+                _j=1
+                for _pkg in $PACKAGES; do
+                    if [ "$_j" -eq "$_num" ] 2>/dev/null; then
+                        _selected="$_selected $_pkg"
+                        break
+                    fi
+                    _j=$(( _j + 1 ))
+                done
+            done
+            ;;
+    esac
+
+    # Trim leading space
+    _selected="$(echo "$_selected" | sed 's/^ *//')"
+
+    if [ -z "$_selected" ]; then
+        warn "No valid packages selected."
+        exit 1
+    fi
+
+    # Process each selected package
+    _ok=0
+    _fail=0
+    printf '\n'
+    for _pkg in $_selected; do
+        printf '%s Setting up %s%s%s ...\n' "$FMT_BOLD" "$FMT_GREEN" "$_pkg" "$FMT_RESET"
+
+        if install_deps "$_pkg"; then
+            if stow_pkg "$_pkg"; then
+                info "$_pkg setup complete"
+                _ok=$(( _ok + 1 ))
+            else
+                err "$_pkg stow failed"
+                _fail=$(( _fail + 1 ))
+            fi
+        else
+            err "$_pkg dependency installation failed"
+            _fail=$(( _fail + 1 ))
+        fi
+
+        printf '\n'
+    done
+
+    # Summary
+    printf '%s── Summary ──────────────────────────────────────────────────────%s\n' "$FMT_BOLD" "$FMT_RESET"
+    info "Succeeded: $_ok"
+    if [ "$_fail" -gt 0 ]; then
+        err "Failed:    $_fail"
+    fi
 }
 
 main "$@"
