@@ -89,17 +89,14 @@ ensure_stow() {
     fi
 
     warn "stow is not installed."
-    printf '  Install stow via %s? [y/N] ' "$PKG_MGR"
 
-    # When stdin is not a terminal (e.g., running non-interactively),
-    # default to "no" so the script does not hang.
     if [ ! -t 0 ]; then
-        printf '\n'
-        err "Non-interactive shell — cannot prompt. Please install stow manually:"
+        err "Non-interactive shell -- cannot prompt. Please install stow manually:"
         err "  $PKG_MGR install stow"
         exit 1
     fi
 
+    printf '  Install stow via %s? [y/N] ' "$PKG_MGR"
     read -r answer
     case "$answer" in
         [Yy]|[Yy][Ee][Ss])
@@ -109,6 +106,10 @@ ensure_stow() {
                 apt)  sudo apt update && sudo apt install -y stow ;;
                 dnf)  sudo dnf install -y stow ;;
             esac
+            if ! has_cmd stow; then
+                err "stow installation failed."
+                exit 1
+            fi
             info "stow installed successfully"
             ;;
         *)
