@@ -310,6 +310,33 @@ stow_pkg() {
     return 0
 }
 
+# ── Post-install validation ───────────────────────────────────────────
+# Runs lightweight config checks after a package is stowed.
+# Warnings are informational and never block installation (always returns 0).
+validate_pkg() {
+    _pkg="$1"
+
+    case "$_pkg" in
+        zsh)
+            if zsh -n "$DOTFILES_DIR/zsh/.zshrc" 2>/dev/null; then
+                info "Validation passed for $_pkg"
+            else
+                warn "Validation warning: zsh syntax check failed for .zshrc"
+            fi
+            ;;
+        tmux)
+            if tmux -f "$DOTFILES_DIR/tmux/.tmux.conf" new-session -d -s _validate 2>/dev/null \
+               && tmux kill-session -t _validate 2>/dev/null; then
+                info "Validation passed for $_pkg"
+            else
+                warn "Validation warning: tmux config load test failed for .tmux.conf"
+            fi
+            ;;
+    esac
+
+    return 0
+}
+
 # ── Package list ──────────────────────────────────────────────────────
 PACKAGES="zsh tmux vim nvim alacritty git p10k zprezto"
 
@@ -394,6 +421,7 @@ main() {
 
         if install_deps "$_pkg"; then
             if stow_pkg "$_pkg"; then
+                validate_pkg "$_pkg"
                 info "$_pkg setup complete"
                 _ok=$(( _ok + 1 ))
             else
