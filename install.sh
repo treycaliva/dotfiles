@@ -291,11 +291,13 @@ stow_pkg() {
                 rm -f "$_tmpfile"
 
                 # Re-attempt stow after handling conflicts
-                if stow -d "$DOTFILES_DIR" -t "$HOME" "$_pkg" 2>/dev/null; then
+                _retry_output=""
+                if _retry_output="$(stow -d "$DOTFILES_DIR" -t "$HOME" "$_pkg" 2>&1)"; then
                     info "Stowed $_pkg (after resolving conflicts)"
                     return 0
                 else
                     err "Failed to stow $_pkg even after conflict resolution"
+                    [ -n "$_retry_output" ] && err "$_retry_output"
                     return 1
                 fi
                 ;;
