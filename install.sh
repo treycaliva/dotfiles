@@ -119,6 +119,65 @@ ensure_stow() {
     esac
 }
 
+# ── Dependency map ───────────────────────────────────────────────────
+# Maps each stow package name to the binaries it requires.
+# Returns a space-separated list on stdout; empty string means no deps.
+deps_for_pkg() {
+    case "$1" in
+        zsh)       echo "zsh zoxide fzf" ;;
+        tmux)      echo "tmux" ;;
+        vim)       echo "vim" ;;
+        nvim)      echo "nvim" ;;
+        alacritty) echo "alacritty" ;;
+        git)       echo "git" ;;
+        p10k)      echo "" ;;
+        zprezto)   echo "" ;;
+        *)         echo "" ;;
+    esac
+}
+
+# ── Binary-to-package-name translation ───────────────────────────────
+# Translates a binary name to the correct package name for the current
+# package manager.  Most binaries share their package name; exceptions
+# are handled explicitly.
+pkg_name() {
+    case "$1" in
+        nvim) echo "neovim" ;;
+        *)    echo "$1" ;;
+    esac
+}
+
+# ── Install dependencies for a stow package ─────────────────────────
+# Takes a stow package name, checks each required binary, and installs
+# any that are missing via the detected package manager.
+install_deps() {
+    _stow_pkg="$1"
+    _deps="$(deps_for_pkg "$_stow_pkg")"
+
+    # Nothing to install
+    [ -z "$_deps" ] && return 0
+
+    for _bin in $_deps; do
+        if has_cmd "$_bin"; then
+            info "$_bin is already installed"
+        else
+            _pkg="$(pkg_name "$_bin")"
+            warn "$_bin is not installed. Installing $_pkg ..."
+            case "$PKG_MGR" in
+                brew) brew install "$_pkg" ;;
+                apt)  sudo apt update && sudo apt install -y "$_pkg" ;;
+                dnf)  sudo dnf install -y "$_pkg" ;;
+            esac
+            if has_cmd "$_bin"; then
+                info "$_bin installed successfully"
+            else
+                err "Failed to install $_bin"
+                return 1
+            fi
+        fi
+    done
+}
+
 # ── Main ──────────────────────────────────────────────────────────────
 main() {
     info "Dotfiles directory: ${FMT_BOLD}${DOTFILES_DIR}${FMT_RESET}"
