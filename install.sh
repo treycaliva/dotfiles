@@ -185,6 +185,171 @@ install_deps() {
     done
 }
 
+# ── Stow status detection ────────────────────────────────────────────
+# Checks whether a stow package is already linked into $HOME.
+# A package counts as "stowed" if at least one of its top-level entries
+# is a symlink under $HOME that resolves to a path inside $DOTFILES_DIR.
+is_stowed() {
+    _pkg="$1"
+    _pkg_dir="$DOTFILES_DIR/$_pkg"
+
+    [ -d "$_pkg_dir" ] || return 1
+
+    for _entry in "$_pkg_dir"/*; do
+        # Skip glob that matched nothing (no files in dir)
+        [ -e "$_entry" ] || continue
+
+        _basename="$(basename "$_entry")"
+
+        # Skip .DS_Store
+        [ "$_basename" = ".DS_Store" ] && continue
+
+        _target="$HOME/$_basename"
+
+        # Check if the corresponding file in $HOME is a symlink
+        if [ -L "$_target" ]; then
+            # Resolve the symlink — macOS readlink has no -f, so we
+            # resolve it by cd-ing into the link's directory and using pwd.
+            _link_dest="$(readlink "$_target")"
+
+            # Handle both absolute and relative symlink targets
+            case "$_link_dest" in
+                /*)
+                    # Absolute path — use as-is
+                    _resolved="$_link_dest"
+                    ;;
+                *)
+                    # Relative path — resolve from the symlink's parent dir
+                    _link_parent="$(dirname "$_target")"
+                    _resolved="$(cd "$_link_parent" && cd "$(dirname "$_link_dest")" && pwd)/$(basename "$_link_dest")"
+                    ;;
+            esac
+
+            # Check if the resolved path is inside the dotfiles directory
+            case "$_resolved" in
+                "$DOTFILES_DIR"/*)
+                    return 0
+                    ;;
+            esac
+        fi
+    done
+
+    # Also check hidden files (glob * does not match dotfiles)
+    for _entry in "$_pkg_dir"/.*; do
+        _basename="$(basename "$_entry")"
+
+        # Skip . , .. , and .DS_Store
+        case "$_basename" in
+            .|..|.DS_Store) continue ;;
+        esac
+
+        _target="$HOME/$_basename"
+
+        if [ -L "$_target" ]; then
+            _link_dest="$(readlink "$_target")"
+
+            case "$_link_dest" in
+                /*)
+                    _resolved="$_link_dest"
+                    ;;
+                *)
+                    _link_parent="$(dirname "$_target")"
+                    _resolved="$(cd "$_link_parent" && cd "$(dirname "$_link_dest")" && pwd)/$(basename "$_link_dest")"
+                    ;;
+            esac
+
+            case "$_resolved" in
+                "$DOTFILES_DIR"/*)
+                    return 0
+                    ;;
+            esac
+        fi
+    done
+
+    return 1
+}
+
+# ── Conflict handling ────────────────────────────────────────────────
+# Backs up a conflicting file so stow can replace it.
+# Takes the conflicting file path (relative to $HOME, e.g. ".zshrc").
+handle_conflict() {
+    _conflict_file="$1"
+    _full_path="$HOME/$_conflict_file"
+    _backup_dir="$HOME/.dotfiles-backup"
+
+    mkdir -p "$_backup_dir"
+
+    if [ ! -t 0 ]; then
+        warn "Non-interactive shell — cannot prompt about $_conflict_file. Skipping."
+        return 1
+    fi
+
+    printf '  ~/%s already exists and is not a symlink. Back up and replace? [y/N] ' "$_conflict_file"
+    read -r _answer
+    case "$_answer" in
+        [Yy]|[Yy][Ee][Ss])
+            _timestamp="$(date +%Y%m%d%H%M%S)"
+            _bak_name="$(basename "$_conflict_file").bak.$_timestamp"
+            mv "$_full_path" "$_backup_dir/$_bak_name"
+            info "Backed up ~/$_conflict_file → ~/.dotfiles-backup/$_bak_name"
+            return 0
+            ;;
+        *)
+            warn "Skipping $_conflict_file"
+            return 1
+            ;;
+    esac
+}
+
+# ── Stow a single package ───────────────────────────────────────────
+# Runs GNU Stow for one package, handling conflicts automatically.
+stow_pkg() {
+    _pkg="$1"
+
+    # Capture both stdout and stderr; do not let set -e kill us on failure
+    _stow_output=""
+    _stow_output="$(stow -d "$DOTFILES_DIR" -t "$HOME" "$_pkg" 2>&1)" || {
+        _stow_rc=$?
+
+        # Check for conflict indicators in the output
+        case "$_stow_output" in
+            *"existing target"*|*"conflict"*|*"CONFLICT"*)
+                # Extract conflicting filenames from stow's error output.
+                # Stow prints lines like: "* existing target is not owned by stow: .zshrc"
+                echo "$_stow_output" | while IFS= read -r _line; do
+                    case "$_line" in
+                        *"existing target"*)
+                            # Pull the filename from the end of the line
+                            _cfile="$(echo "$_line" | sed 's/.*: //')"
+                            if [ -n "$_cfile" ]; then
+                                if handle_conflict "$_cfile"; then
+                                    : # handled — will re-stow below
+                                fi
+                            fi
+                            ;;
+                    esac
+                done
+
+                # Re-attempt stow after handling conflicts
+                if stow -d "$DOTFILES_DIR" -t "$HOME" "$_pkg" 2>/dev/null; then
+                    info "Stowed $_pkg (after resolving conflicts)"
+                    return 0
+                else
+                    err "Failed to stow $_pkg even after conflict resolution"
+                    return 1
+                fi
+                ;;
+            *)
+                err "stow $_pkg failed: $_stow_output"
+                return 1
+                ;;
+        esac
+    }
+
+    info "Stowed $_pkg"
+    return 0
+}
+
 # ── Main ──────────────────────────────────────────────────────────────
 main() {
     info "Dotfiles directory: ${FMT_BOLD}${DOTFILES_DIR}${FMT_RESET}"
