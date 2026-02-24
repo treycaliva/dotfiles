@@ -363,19 +363,22 @@ main() {
         *)
             for _num in $_choices; do
                 _j=1
+                _found=0
                 for _pkg in $PACKAGES; do
                     if [ "$_j" -eq "$_num" ] 2>/dev/null; then
                         _selected="$_selected $_pkg"
+                        _found=1
                         break
                     fi
                     _j=$(( _j + 1 ))
                 done
+                [ "$_found" -eq 0 ] && warn "Ignoring invalid choice: $_num"
             done
             ;;
     esac
 
     # Trim leading space
-    _selected="$(echo "$_selected" | sed 's/^ *//')"
+    _selected="${_selected# }"
 
     if [ -z "$_selected" ]; then
         warn "No valid packages selected."
@@ -410,6 +413,7 @@ main() {
     info "Succeeded: $_ok"
     if [ "$_fail" -gt 0 ]; then
         err "Failed:    $_fail"
+        exit 1
     fi
 }
 
