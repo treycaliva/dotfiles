@@ -153,10 +153,12 @@ pkg_name() {
 install_deps() {
     _stow_pkg="$1"
     _deps="$(deps_for_pkg "$_stow_pkg")"
+    _apt_updated=0
 
     # Nothing to install
     [ -z "$_deps" ] && return 0
 
+    # Word splitting is intentional — deps are single-word binary names
     for _bin in $_deps; do
         if has_cmd "$_bin"; then
             info "$_bin is already installed"
@@ -165,7 +167,12 @@ install_deps() {
             warn "$_bin is not installed. Installing $_pkg ..."
             case "$PKG_MGR" in
                 brew) brew install "$_pkg" ;;
-                apt)  sudo apt update && sudo apt install -y "$_pkg" ;;
+                apt)
+                    if [ "$_apt_updated" -eq 0 ]; then
+                        sudo apt update
+                        _apt_updated=1
+                    fi
+                    sudo apt install -y "$_pkg" ;;
                 dnf)  sudo dnf install -y "$_pkg" ;;
             esac
             if has_cmd "$_bin"; then
