@@ -361,13 +361,13 @@ show_menu() {
 
 # ── Main ──────────────────────────────────────────────────────────────
 main() {
-    info "Dotfiles directory: ${FMT_BOLD}${DOTFILES_DIR}${FMT_RESET}"
-
     detect_os
-    info "Operating system:   ${FMT_BOLD}${OS}${FMT_RESET}"
-
     detect_pkg_manager
-    info "Package manager:    ${FMT_BOLD}${PKG_MGR}${FMT_RESET}"
+
+    printf '\n%sdotfiles installer%s\n' "$FMT_BOLD" "$FMT_RESET"
+    printf '==================\n'
+    printf 'OS:       %s (%s)\n' "$OS" "$PKG_MGR"
+    printf 'Dotfiles: %s\n\n' "$DOTFILES_DIR"
 
     ensure_stow
 
