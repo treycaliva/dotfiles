@@ -1,0 +1,58 @@
+# colors
+background = "1C1B19"
+foreground = "FCE8C3"
+
+palette  = 0=#1C1B19
+palette  = 1=#EF2F27
+palette  = 2=#519F50
+palette  = 3=#FBB829
+palette  = 4=#2C78BF
+palette  = 5=#E02C6D
+palette  = 6=#0AAEB3
+palette  = 7=#BAA67F
+palette  = 8=#918175
+palette  = 9=#F75341
+palette  = 10=#98BC37
+palette  = 11=#FED06E
+palette  = 12=#68A8E4
+palette  = 13=#FF5C8F
+palette  = 14=#2BE4D0
+palette  = 15=#FCE8C3
+
+palette  = 202=#FF5F00
+palette  = 208=#FF8700
+palette  = 233=#121212
+palette  = 30=#008080
+palette  = 235=#262626
+palette  = 236=#303030
+palette  = 237=#3A3A3A
+palette  = 238=#444444
+palette  = 239=#4E4E4E
+palette  = 240=#585858
+palette  = 241=#626262
+palette  = 242=#6C6C6C
+palette  = 243=#767676
+palette  = 244=#808080
+palette  = 245=#8A8A8A
+palette  = 246=#949494
+
+bold-is-bright = true
+
+# font
+font-family = "BlexMono Nerd Font Mono"
+font-size = "15.0"
+font-thicken = true
+
+# cursor
+cursor-style = "block"
+
+# window
+window-padding-x = 10
+window-padding-y = 10
+
+# clipboard
+clipboard-read = allow
+clipboard-write = allow
+
+# keybinds
+keybind = shift+enter=text:\x1b[13;2u

@@ -129,6 +129,7 @@ deps_for_pkg() {
         vim)       echo "vim" ;;
         nvim)      echo "nvim" ;;
         alacritty) echo "alacritty" ;;
+        ghostty)   echo "ghostty" ;;
         git)       echo "git" ;;
         p10k)      echo "" ;;
         zprezto)   echo "" ;;
@@ -340,7 +341,7 @@ validate_pkg() {
 }
 
 # ── Package list ──────────────────────────────────────────────────────
-PACKAGES="zsh tmux vim nvim alacritty git p10k zprezto"
+PACKAGES="zsh tmux vim nvim alacritty ghostty git p10k zprezto"
 
 # ── Interactive menu ─────────────────────────────────────────────────
 show_menu() {
