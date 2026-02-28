@@ -29,8 +29,8 @@ nvim +PlugInstall +qa             # install/update vim plugins
 - **install.sh** — POSIX sh bootstrap script (~440 lines). Detects OS/package manager, maps each stow package to its binary dependencies (`deps_for_pkg()`), installs missing deps, runs stow with conflict resolution (backs up existing files to `~/.dotfiles-backup/`), and runs post-install validation.
 - **Srcery color theme** is used consistently across tmux, vim, alacritty, and ghostty configs.
 - **Plugin managers auto-bootstrap**: Zinit (zsh) and vim-plug (vim/nvim) both download themselves on first run if missing.
-- **nvim/init.vim** simply sources `~/.vimrc` — vim and nvim share one config.
-- **ghostty/** uses a deeper directory tree (`Library/Application Support/com.mitchellh.ghostty/config`) because stow mirrors the full path into `$HOME`.
+- **nvim** and **ghostty** use deeper directory trees (`.config/nvim/init.vim` and `Library/Application Support/com.mitchellh.ghostty/config`) because stow mirrors the full path into `$HOME`.
+- **nvim/.config/nvim/init.vim** simply sources `~/.vimrc` — vim and nvim share one config.
 
 ## Style
 
