@@ -132,3 +132,4 @@ export PATH=~/.groundcover/bin:/$PATH
 
 # Added by Antigravity
 export PATH="/Users/treycaliva/.antigravity/antigravity/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
