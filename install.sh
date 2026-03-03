@@ -213,19 +213,31 @@ _resolves_to_dotfiles() {
 }
 
 # Checks whether a stow package is already linked into $HOME.
-# A package counts as "stowed" if at least one of its top-level entries
-# is a symlink under $HOME that resolves to a path inside $DOTFILES_DIR.
+# A package counts as "stowed" if at least one of its leaf files has a
+# corresponding symlink (at any path level) under $HOME that resolves
+# into $DOTFILES_DIR.  This handles both shallow packages (zsh/.zshrc)
+# and deep directory trees (ghostty/Library/…, nvim/.config/nvim/…).
 is_stowed() {
     _pkg_dir="$DOTFILES_DIR/$1"
 
     [ -d "$_pkg_dir" ] || return 1
 
-    for _entry in "$_pkg_dir"/* "$_pkg_dir"/.*; do
-        _bn="$(basename "$_entry")"
-        case "$_bn" in .|..|.DS_Store) continue ;; esac
-        [ -e "$_entry" ] || continue
-        _resolves_to_dotfiles "$HOME/$_bn" && return 0
-    done
+    _is_tmpfile="$(mktemp)"
+    find "$_pkg_dir" ! -type d > "$_is_tmpfile" 2>/dev/null
+    while IFS= read -r _file; do
+        _is_rel="${_file#"$_pkg_dir"/}"
+        case "$_is_rel" in .DS_Store) continue ;; esac
+        # Walk each path segment from the leaf up toward $HOME
+        _seg="$HOME/$_is_rel"
+        while [ "$_seg" != "$HOME" ]; do
+            if _resolves_to_dotfiles "$_seg"; then
+                rm -f "$_is_tmpfile"
+                return 0
+            fi
+            _seg="$(dirname "$_seg")"
+        done
+    done < "$_is_tmpfile"
+    rm -f "$_is_tmpfile"
 
     return 1
 }
@@ -281,13 +293,20 @@ stow_pkg() {
                 echo "$_stow_output" > "$_tmpfile"
                 while IFS= read -r _line; do
                     case "$_line" in
-                        *"existing target"*)
-                            _cfile="$(echo "$_line" | sed 's/.*: //')"
-                            if [ -n "$_cfile" ]; then
-                                handle_conflict "$_cfile" || true
-                            fi
+                        *"existing target is"*": "*)
+                            # Format: "existing target is not owned by stow: <path>"
+                            _cfile="${_line##*: }"
                             ;;
+                        *"over existing target "*)
+                            # Format: "cannot stow <src> over existing target <path> since ..."
+                            _cfile="${_line#*over existing target }"
+                            _cfile="${_cfile%% since *}"
+                            ;;
+                        *) continue ;;
                     esac
+                    if [ -n "$_cfile" ]; then
+                        handle_conflict "$_cfile" || true
+                    fi
                 done < "$_tmpfile"
                 rm -f "$_tmpfile"
 
