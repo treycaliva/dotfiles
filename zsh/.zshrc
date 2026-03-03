@@ -24,11 +24,7 @@ zinit ice depth=1; zinit light romkatv/powerlevel10k
 zinit light zsh-users/zsh-autosuggestions
 zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-syntax-highlighting
-# source ~/.iterm2_shell_integration.zsh
 export PATH="/usr/local/anaconda3/bin:$PATH"
-# chruby ruby-2.7.1
-# source /usr/local/share/chruby/chruby.sh
-# source /usr/local/share/chruby/auto.sh
 
 # history-substring-search
 zinit snippet OMZ::plugins/git/git.plugin.zsh
@@ -70,16 +66,19 @@ autoload -U +X bashcompinit && bashcompinit
 complete -o nospace -C /usr/local/bin/terraform terraform
 export PATH="$HOME/.tfenv/bin:$PATH"
 
-# GCloud[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# GCloud
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/treycaliva/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/treycaliva/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/treycaliva/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/treycaliva/google-cloud-sdk/completion.zsh.inc'; fi
 
 eval "$(zoxide init zsh --cmd cd)"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-autoload -U +X bashcompinit && bashcompinit
-complete -o nospace -C /usr/local/bin/terraform terraform
-
 alias fd=fdfind
+
 # Load a few important annexes, without Turbo
 # (this is currently required for annexes)
 zinit light-mode for \
@@ -90,20 +89,13 @@ zinit light-mode for \
 
 ### End of Zinit's installer chunk
 
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/treycaliva/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/treycaliva/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/treycaliva/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/treycaliva/google-cloud-sdk/completion.zsh.inc'; fi
-
 EDITOR="nvim"
 # Alias
 alias k="kubectl"
 alias ls="ls --color=auto"
 source <(kubectl completion zsh)
 
-# export NVM_DIR="$HOME/.nvm"
-# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+# NVM (lazy loading for faster shell startup)
 export NVM_LAZY_LOAD=true
 source "/Users/treycaliva/.zsh-nvm.zsh"
 
@@ -112,18 +104,16 @@ export PYENV_ROOT="$HOME/.pyenv"
 eval "$(pyenv init -)"
 
 . "$HOME/.local/bin/env"
+export PATH="$HOME/.local/bin:$PATH"
 
 gcup() {
-  # 1. Get the name of the branch you're currently on
   local current_branch
   current_branch=$(git rev-parse --abbrev-ref HEAD)
 
-  # 2. Safety check: Don't try to delete main or master
   if [ "$current_branch" = "main" ] || [ "$current_branch" = "master" ]; then
     echo "You are already on '$current_branch'. Running 'git pull'."
     git pull
   else
-    # 3. This is your desired command sequence
     echo "Switching to main, pulling, and deleting local branch '$current_branch'..."
     git checkout main && git pull && git branch -d "$current_branch"
   fi
@@ -132,4 +122,3 @@ export PATH=~/.groundcover/bin:/$PATH
 
 # Added by Antigravity
 export PATH="/Users/treycaliva/.antigravity/antigravity/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"

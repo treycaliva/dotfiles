@@ -20,8 +20,6 @@ Plug 'godlygeek/tabular'
 Plug 'hashivim/vim-packer'
 Plug 'hashivim/vim-terraform'
 Plug 'hashivim/vim-vagrant'
-" Plug 'ianks/vim-tsx'
-" Plug '/usr/local/opt/fzf'
 Plug 'jvirtanen/vim-hcl'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() }}
 Plug 'junegunn/fzf.vim'
@@ -29,59 +27,32 @@ Plug 'kana/vim-fakeclip'
 Plug 'kiddos/gemini.nvim'
 Plug 'kshenoy/vim-signature'
 Plug 'leshill/vim-json'
-" Plug 'leafgarland/typescript-vim'
 Plug 'lilydjwg/colorizer'
 Plug 'mattn/emmet-vim'
 Plug 'morhetz/gruvbox'
-" Plug 'neoclide/coc.nvim', {'branch': 'release'}
-" Plug 'OmniSharp/omnisharp-vim'
-" Plug 'pangloss/vim-javascript'
 Plug 'pbrisbin/vim-mkdir'
-" Plug 'leafOfTree/vim-vue-plugin'
-Plug 'lilydjwg/colorizer'
-Plug 'mattn/emmet-vim'
-Plug 'morhetz/gruvbox'
 " Plug 'neoclide/coc.nvim', {'branch': 'release'}
-" Plug 'OmniSharp/omnisharp-vim'
-" Plug 'pangloss/vim-javascript'
-Plug 'pbrisbin/vim-mkdir'
-" Plug 'posva/vim-vue'
 Plug 'PProvost/vim-ps1'
 Plug 'Quramy/vim-js-pretty-template'
 Plug 'Raimondi/delimitMate'
-" Plug 'scrooloose/nerdcommenter'
 Plug 'scrooloose/nerdtree'
 Plug 'srcery-colors/srcery-vim'
-" Plug 'StanAngeloff/php.vim'
 Plug 'stephpy/vim-yaml'
-" Plug 'storyn26383/vim-vue'
 Plug 'tpope/vim-bundler'
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-dadbod'
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-projectionist'
 Plug 'tpope/vim-ragtag'
-" Plug 'tpope/vim-rails'
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
-Plug 'tpope/vim-bundler'
 Plug 'uarun/vim-protobuf'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'vim-ruby/vim-ruby'
 Plug 'yggdroot/indentLine'
-" if has('nvim')
-"   Plug 'Shougo/denite.nvim', { 'do': ':UpdateRemotePlugins' }
-" else
-"   Plug 'Shougo/denite.nvim'
-"   Plug 'roxma/nvim-yarp'
-"   Plug 'roxma/vim-hug-neovim-rpc'
-" endif
 call plug#end()
-" colo gruvbox
-" colo srcery
 syntax enable
-" colorscheme srcery
 syntax on
 
 " General VIM settings
@@ -97,9 +68,6 @@ set splitbelow
 set splitright
 set tabstop=2                                 " Two spaces per tab as default
 
-" inoremap " ""<left>
-" inoremap { {}<left>
-" inoremap [ []<left>
 
 " Leader commands
 let mapleader = " "
@@ -123,27 +91,8 @@ autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
 " air-line
 let g:airline_powerline_fonts = 1
 
-" let g:airline_theme='tomorrow'
 let g:airline_theme='srcery'
 
-" let g:ale_linters = {
-"       \ 'cs': ['OmniSharp'],
-"       \ 'javascript': ['eslint'],
-"       \ 'php': ['phpcs'],
-"       \ 'ruby': ['rubocop'],
-"       \ 'typescript' : ['tsserver'],
-" \}
-" let g:ale_fixers = {
-"       \ 'javascript': ['prettier'],
-"       \ 'typescript': ['prettier'],
-"       \ 'ruby': ['rubocop'],
-"       \ 'vue': ['eslint'],
-"       \ 'scss': ['prettier'],
-"       \ 'php': ['phpcbf']
-" \}
-" let g:ale_fix_on_save = 1
-" let g:ale_linters_explicit = 1
-" let g:airline#extensions#ale#enabled = 1
 
 " ======= CoC Settings ========
 " use <Tab> and <S-Tab> to navigate the trigger list
@@ -166,7 +115,6 @@ nmap <silent> <Leader>L : Lines<CR>
 nmap <silent> <Leader>' :Marks<CR>
 
 " Other finders
-" noremap <silent>
 
 command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-heading --fixed-strings --ignore-case --no-ignore --hidden --follow --glob "!.git/*" --color "always" '.shellescape(<q-args>).'| tr -d "\017"', 1, <bang>0)
 
@@ -195,10 +143,6 @@ let g:fzf_colors =
 "=== Treat all svelte files as HTML ==="
 au! BufNewFile,BufRead *.svelte set ft=html
 
-" let g:NERDTreeWinPos = 0 
-" let g:NERDTreeMinimalUI  = 1
-" let g:NERDTreeShowHidden = 1
-
 let g:javascript_plugin_flow = 1
 
 let g:netrw_banner = 0
@@ -214,7 +158,6 @@ let g:terraform_fmt_on_save=1
 "=== indentLine plugin ===
 let g:indentLine_char = '⦙'
 
-" set formatoptions-=ro
 
 autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
 autocmd FileType typescript setlocal formatprg=prettier\ --parser\ typescript
@@ -234,14 +177,12 @@ endfunc
 
 augroup colorscheme_coc_setup | au!
     au ColorScheme * call s:my_colors_setup()
-augroup EN
+augroup END
 
 " ======= color settings =======
 let g:srcery_italic = 1
-" colorscheme srcery
 colorscheme srcery
-" set guifont=IBM\ Plex\ Mono:h13
-set guifont=Perplexed:h13
+set guifont=BlexMono\ Nerd\ Font\ Mono:h13
 set guicursor=
 
 
