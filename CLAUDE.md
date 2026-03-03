@@ -2,29 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Overview
+## What This Is
 
-This is a personal dotfiles repository managed with [GNU Stow](https://www.gnu.org/software/stow/). Each top-level directory is a stow package containing config files that get symlinked to `$HOME`.
+A GNU Stow-based dotfiles collection. Each top-level directory is a **stow package** whose contents get symlinked into `$HOME`. The interactive `install.sh` script handles dependency installation, stowing, and conflict resolution across macOS and Linux.
 
-## Stow Usage
+**Packages:** `zsh`, `tmux`, `vim`, `nvim`, `ghostty`, `git`, `p10k`
 
-To symlink a package (e.g., `zsh`):
-```sh
-stow zsh        # symlinks zsh/.zshrc -> ~/.zshrc
-stow -D zsh     # removes the symlink
+## Common Commands
+
+```bash
+# Bootstrap installer (interactive menu)
+./install.sh
+
+# Stow/unstow packages manually
+stow zsh tmux vim nvim ghostty git p10k
+stow -D zsh && stow zsh          # restow a single package
+
+# Validation
+zsh -n zsh/.zshrc                 # syntax-check zshrc
+tmux -f tmux/.tmux.conf new -d && tmux kill-server  # validate tmux config
+nvim +PlugInstall +qa             # install/update vim plugins
 ```
 
-Each directory maps to a stow package. The directory structure mirrors the home directory layout — dotfiles inside each package are placed at the root level (e.g., `git/.gitconfig` becomes `~/.gitconfig`).
+## Architecture
 
-## Packages
-
-- **alacritty** — Terminal emulator config (Srcery color scheme, BlexMono Nerd Font)
-- **git** — Git user config and aliases (`ac`, `co`, `rename`)
-- **nvim** — Neovim config (sources `~/.vimrc`)
-- **p10k** — Powerlevel10k zsh prompt theme config
-- **tmux** — Tmux config (prefix: `C-a`, vim-tmux-navigator integration) and `tat` script for session management
-- **vim** — Vim/Neovim config using vim-plug; Srcery colorscheme, CoC for completion, fzf integration, leader is `<Space>`
-- **zsh** — Zsh config using zinit plugin manager, Powerlevel10k prompt, with fzf, nvm, terraform, and gcloud setup
+- **install.sh** — POSIX sh bootstrap script (~440 lines). Detects OS/package manager, maps each stow package to its binary dependencies (`deps_for_pkg()`), installs missing deps, runs stow with conflict resolution (backs up existing files to `~/.dotfiles-backup/`), and runs post-install validation.
+- **Srcery color theme** is used consistently across tmux, vim, and ghostty configs.
+- **Plugin managers auto-bootstrap**: Zinit (zsh) and vim-plug (vim/nvim) both download themselves on first run if missing.
+- **nvim** and **ghostty** use deeper directory trees (`.config/nvim/init.vim` and `Library/Application Support/com.mitchellh.ghostty/config`) because stow mirrors the full path into `$HOME`.
+- **nvim/.config/nvim/init.vim** simply sources `~/.vimrc` — vim and nvim share one config.
 
 ## Key Conventions
 
@@ -34,3 +40,11 @@ Each directory maps to a stow package. The directory structure mirrors the home 
 - Zsh plugin manager is **zinit** (migrated from Prezto)
 - Tmux prefix is `C-a` (not default `C-b`)
 - Vim-tmux-navigator provides seamless `C-h/j/k/l` pane/split navigation between tmux and vim
+
+## Style
+
+- Shell scripts: POSIX-compatible, lowercase function names, always quote variables (`"$VAR"`)
+- install.sh must stay POSIX sh (no bashisms) for portability
+- Small, focused edits; comments only where behavior is non-obvious
+- Commit messages: `area: concise imperative action` (e.g., `tmux: tune pane resize keys`)
+- One logical change per commit
