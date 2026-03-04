@@ -217,24 +217,36 @@ func (m model) doInstall() tea.Cmd {
 					lines := strings.Split(outStr, "\n")
 					conflictsResolved := false
 					for _, line := range lines {
-						// Look for the filename after "existing target is not owned by stow:" or similar
-						if strings.Contains(line, "* existing target") {
-							// Find the part after the last colon
+						var conflictFile string
+						if strings.Contains(line, "over existing target") {
+							// Format: "* cannot stow ... over existing target .gitconfig since ..."
+							parts := strings.Split(line, "over existing target")
+							if len(parts) > 1 {
+								after := strings.TrimSpace(parts[1])
+								fileParts := strings.Fields(after)
+								if len(fileParts) > 0 {
+									conflictFile = fileParts[0]
+								}
+							}
+						} else if strings.Contains(line, "existing target is not owned by stow") {
+							// Format: "* existing target is not owned by stow: .zshrc"
 							parts := strings.Split(line, ":")
 							if len(parts) > 1 {
-								conflictFile := strings.TrimSpace(parts[len(parts)-1])
-								fullPath := home + "/" + conflictFile
+								conflictFile = strings.TrimSpace(parts[len(parts)-1])
+							}
+						}
+
+						if conflictFile != "" {
+							fullPath := home + "/" + conflictFile
+							// Ensure we don't try to backup something that doesn't exist
+							if _, statErr := os.Stat(fullPath); statErr == nil {
+								backupDir := home + "/.dotfiles-backup"
+								os.MkdirAll(backupDir, 0755)
+								backupPath := fmt.Sprintf("%s/%s.bak.%d", backupDir, conflictFile, os.Getpid())
 								
-								// Ensure we don't try to backup something that doesn't exist
-								if _, statErr := os.Stat(fullPath); statErr == nil {
-									backupDir := home + "/.dotfiles-backup"
-									os.MkdirAll(backupDir, 0755)
-									backupPath := fmt.Sprintf("%s/%s.bak.%d", backupDir, conflictFile, os.Getpid())
-									
-									if moveErr := os.Rename(fullPath, backupPath); moveErr == nil {
-										m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Backed up %s", conflictFile))
-										conflictsResolved = true
-									}
+								if moveErr := os.Rename(fullPath, backupPath); moveErr == nil {
+									m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Backed up %s", conflictFile))
+									conflictsResolved = true
 								}
 							}
 						}
