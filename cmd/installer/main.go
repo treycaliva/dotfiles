@@ -167,7 +167,12 @@ func (m model) doInstall() tea.Cmd {
 			return errMsg{err}
 		}
 
-		// 1. Generate Git Config Local
+		// 1. Check for stow
+		if _, err := exec.LookPath("stow"); err != nil {
+			return errMsg{fmt.Errorf("stow is not installed. Please install it first (e.g., brew install stow or sudo apt install stow)")}
+		}
+
+		// 2. Generate Git Config Local
 		gitLocalPath := home + "/.gitconfig.local"
 		tmplContent := `[user]
 	name = {{.Name}}
@@ -195,11 +200,18 @@ func (m model) doInstall() tea.Cmd {
 		}
 
 		// 2. Stow Packages
+		cwd, err := os.Getwd()
+		if err != nil {
+			return errMsg{err}
+		}
+
 		for _, pkg := range m.selectedProf.Packages {
-			cmd := exec.Command("stow", pkg)
-			err := cmd.Run()
+			// Using -d (dir) and -t (target) for explicitness
+			// Using --restow to overwrite existing symlinks if they exist
+			cmd := exec.Command("stow", "-d", cwd, "-t", home, "--restow", pkg)
+			output, err := cmd.CombinedOutput()
 			if err != nil {
-				return errMsg{fmt.Errorf("failed to stow %s: %v", pkg, err)}
+				return errMsg{fmt.Errorf("failed to stow %s: %v\nOutput: %s", pkg, err, string(output))}
 			}
 		}
 
