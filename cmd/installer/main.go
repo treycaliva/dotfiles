@@ -78,8 +78,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Global quit keys
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
+			return m, tea.Quit
+		}
+
+		// If we're in an error state or stateDone, any key exits
+		if m.err != nil || m.state == stateDone {
 			return m, tea.Quit
 		}
 	}
@@ -94,12 +100,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateInstalling:
 		return m.updateInstalling(msg)
 	case stateDone:
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			if msg.Type == tea.KeyEnter || msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
-				return m, tea.Quit
-			}
-		}
+		// Any key handling is now at the top of Update()
+		return m, nil
 	}
 
 	return m, cmd
@@ -206,11 +208,40 @@ func (m model) doInstall() tea.Cmd {
 		}
 
 		for _, pkg := range m.selectedProf.Packages {
-			// Using -d (dir) and -t (target) for explicitness
-			// Using --restow to overwrite existing symlinks if they exist
 			cmd := exec.Command("stow", "-d", cwd, "-t", home, "--restow", pkg)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
+				outStr := string(output)
+				if strings.Contains(outStr, "conflicts:") || strings.Contains(outStr, "not owned by stow") {
+					lines := strings.Split(outStr, "\n")
+					conflictsResolved := false
+					for _, line := range lines {
+						if strings.Contains(line, "* existing target") {
+							parts := strings.Split(line, ": ")
+							if len(parts) > 1 {
+								conflictFile := strings.TrimSpace(parts[1])
+								fullPath := home + "/" + conflictFile
+								
+								backupDir := home + "/.dotfiles-backup"
+								os.MkdirAll(backupDir, 0755)
+								backupPath := fmt.Sprintf("%s/%s.bak.%d", backupDir, conflictFile, os.Getpid())
+								
+								if moveErr := os.Rename(fullPath, backupPath); moveErr == nil {
+									m.installLog = append(m.installLog, fmt.Sprintf("Backed up %s to %s", conflictFile, backupPath))
+									conflictsResolved = true
+								}
+							}
+						}
+					}
+					if conflictsResolved {
+						// Final attempt for this package
+						cmd = exec.Command("stow", "-d", cwd, "-t", home, "--restow", pkg)
+						output, err = cmd.CombinedOutput()
+						if err == nil {
+							continue
+						}
+					}
+				}
 				return errMsg{fmt.Errorf("failed to stow %s: %v\nOutput: %s", pkg, err, string(output))}
 			}
 		}
@@ -278,7 +309,7 @@ func (m model) View() string {
 		for _, log := range m.installLog {
 			b.WriteString("- " + log + "\n")
 		}
-		b.WriteString("\n" + infoStyle.Render("Press Enter to exit."))
+		b.WriteString("\n" + infoStyle.Render("Press any key to exit."))
 	}
 
 	return b.String()
