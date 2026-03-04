@@ -131,6 +131,8 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		a.current = NewHomeScreen(a.state)
 	case ScreenSelect:
 		a.current = NewSelectScreen(a.state)
+	case ScreenPreview:
+		a.current = NewPreviewScreen(a.state)
 	}
 
 	return a, a.current.Init()
