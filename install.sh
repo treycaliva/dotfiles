@@ -381,6 +381,24 @@ show_menu() {
     printf 'Enter choices (e.g. 3 4 or a): '
 }
 
+# ── Tmux theme installation ──────────────────────────────────────────
+# Installs the Srcery tmux theme if it is missing.
+install_tmux_theme() {
+    _theme_dir="$HOME/.tmux/themes/srcery-tmux"
+    if [ ! -d "$_theme_dir" ]; then
+        info "Installing Srcery tmux theme ..."
+        mkdir -p "$(dirname "$_theme_dir")"
+        if has_cmd git; then
+            git clone --depth 1 https://github.com/srcery-colors/srcery-tmux "$_theme_dir"
+            info "Srcery tmux theme installed successfully"
+        else
+            err "git is required to install the tmux theme. Skipping."
+        fi
+    else
+        info "Srcery tmux theme is already installed"
+    fi
+}
+
 # ── Main ──────────────────────────────────────────────────────────────
 main() {
     detect_os
@@ -443,6 +461,9 @@ main() {
 
         if install_deps "$_pkg"; then
             if stow_pkg "$_pkg"; then
+                if [ "$_pkg" = "tmux" ]; then
+                    install_tmux_theme
+                fi
                 validate_pkg "$_pkg"
                 info "$_pkg setup complete"
                 _ok=$(( _ok + 1 ))

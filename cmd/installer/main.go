@@ -213,6 +213,7 @@ func (m model) doInstall() tea.Cmd {
 			cmd := exec.Command("stow", "-d", cwd, "-t", home, "--restow", pkg)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
+				// ... (conflict resolution logic remains same)
 				outStr := string(output)
 				if strings.Contains(outStr, "conflicts:") || strings.Contains(outStr, "not owned by stow") {
 					lines := strings.Split(outStr, "\n")
@@ -286,6 +287,9 @@ func (m model) doInstall() tea.Cmd {
 						output, err = cmd.CombinedOutput()
 						if err == nil {
 							m.installLog = append(m.installLog, fmt.Sprintf("  - Successfully stowed %s after resolution", pkg))
+							if pkg == "tmux" {
+								m.installTmuxTheme(home)
+							}
 							continue
 						}
 					}
@@ -293,9 +297,27 @@ func (m model) doInstall() tea.Cmd {
 				return errMsg{fmt.Errorf("failed to stow %s: %v\nOutput: %s", pkg, err, string(output))}
 			}
 			m.installLog = append(m.installLog, fmt.Sprintf("  - Successfully stowed %s", pkg))
+			if pkg == "tmux" {
+				m.installTmuxTheme(home)
+			}
 		}
 
 		return installMsg("Installation Complete!")
+	}
+}
+
+func (m *model) installTmuxTheme(home string) {
+	themeDir := filepath.Join(home, ".tmux/themes/srcery-tmux")
+	if _, err := os.Stat(themeDir); os.IsNotExist(err) {
+		m.installLog = append(m.installLog, "  - Installing Srcery tmux theme...")
+		cmd := exec.Command("git", "clone", "--depth", "1", "https://github.com/srcery-colors/srcery-tmux", themeDir)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			m.installLog = append(m.installLog, fmt.Sprintf("    Error installing theme: %v\nOutput: %s", err, string(output)))
+		} else {
+			m.installLog = append(m.installLog, "    Successfully installed Srcery tmux theme")
+		}
+	} else {
+		m.installLog = append(m.installLog, "  - Srcery tmux theme already installed")
 	}
 }
 
