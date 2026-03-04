@@ -1,0 +1,37 @@
+packages:
+  zsh:
+    description: "Zsh shell config with zinit plugins"
+    deps: [zsh, zoxide, fzf]
+    validate: "zsh -n ~/.zshrc"
+  tmux:
+    description: "Tmux config with vim-navigator integration"
+    deps: [tmux]
+    validate: "tmux -f ~/.tmux.conf new-session -d -s _validate && tmux kill-session -t _validate"
+  vim:
+    description: "Vim config with vim-plug"
+    deps: [vim]
+  nvim:
+    description: "Neovim (sources ~/.vimrc)"
+    deps: [nvim]
+    pkg_names:
+      nvim: neovim
+  ghostty:
+    description: "Ghostty terminal emulator config"
+    deps: [ghostty]
+  git:
+    description: "Git config and aliases"
+    deps: [git]
+  p10k:
+    description: "Powerlevel10k prompt theme"
+    deps: []
+
+profiles:
+  minimal:
+    description: "Shell essentials"
+    packages: [zsh, git, p10k]
+  server:
+    description: "Headless / SSH machines"
+    packages: [zsh, tmux, vim, git, p10k]
+  full:
+    description: "Everything"
+    packages: [zsh, tmux, vim, nvim, ghostty, git, p10k]
