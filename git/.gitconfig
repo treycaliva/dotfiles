@@ -1,8 +1,12 @@
 # This is Git's per-user configuration file.
+[include]
+	path = ~/.gitconfig.local
+
 [user]
-# Please adapt and uncomment the following lines:
-	name = Trey Caliva
-	email = francis.caliva@e-hps.com
+	# Name and email should be configured in ~/.gitconfig.local
+	# Example:
+	# name = Your Name
+	# email = your.email@example.com
 [alias]
 	ac = !git add -A && git commit
   co = !git checkout

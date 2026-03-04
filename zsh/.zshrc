@@ -97,13 +97,13 @@ source <(kubectl completion zsh)
 
 # NVM (lazy loading for faster shell startup)
 export NVM_LAZY_LOAD=true
-source "/Users/treycaliva/.zsh-nvm.zsh"
+[[ -f "/Users/treycaliva/.zsh-nvm.zsh" ]] && source "/Users/treycaliva/.zsh-nvm.zsh"
 
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
+command -v pyenv >/dev/null && eval "$(pyenv init -)"
 
-. "$HOME/.local/bin/env"
+[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
 export PATH="$HOME/.local/bin:$PATH"
 
 gcup() {
@@ -122,3 +122,6 @@ export PATH=~/.groundcover/bin:/$PATH
 
 # Added by Antigravity
 export PATH="/Users/treycaliva/.antigravity/antigravity/bin:$PATH"
+
+# Load local overrides (e.g. machine-specific aliases or exports)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
