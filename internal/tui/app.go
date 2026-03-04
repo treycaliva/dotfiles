@@ -135,6 +135,8 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		a.current = NewPreviewScreen(a.state)
 	case ScreenDiff:
 		a.current = NewDiffScreen(a.state, a.state.DiffPkg, a.state.DiffFile)
+	case ScreenProgress:
+		a.current = NewProgressScreen(a.state)
 	}
 
 	return a, a.current.Init()
