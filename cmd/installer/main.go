@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -237,8 +238,8 @@ func (m model) doInstall() tea.Cmd {
 						}
 
 						if conflictFile != "" {
-							fullPath := home + "/" + conflictFile
-							repoPath := cwd + "/" + pkg + "/" + conflictFile
+							fullPath := filepath.Join(home, conflictFile)
+							repoPath := filepath.Join(cwd, pkg, conflictFile)
 
 							// Check if files are identical
 							isIdentical := false
@@ -248,17 +249,16 @@ func (m model) doInstall() tea.Cmd {
 								isIdentical = true
 							}
 
-							backupDir := home + "/.dotfiles-backup"
-							os.MkdirAll(backupDir, 0755)
-
+							backupDir := filepath.Join(home, ".dotfiles-backup")
+							
 							if isIdentical {
 								// If identical, we can just remove it to let stow create the link
 								if removeErr := os.Remove(fullPath); removeErr == nil {
 									m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Removed identical file %s", conflictFile))
 									conflictsResolved = true
 								}
-							} else {
-								// If different, show a diff summary and backup
+							} else if _, statErr := os.Lstat(fullPath); statErr == nil {
+								// If different or not identical, show a diff summary and backup
 								diffCmd := exec.Command("diff", "-u", repoPath, fullPath)
 								diffOut, _ := diffCmd.CombinedOutput()
 								diffStr := string(diffOut)
@@ -266,7 +266,10 @@ func (m model) doInstall() tea.Cmd {
 									diffStr = diffStr[:500] + "\n... (diff truncated)"
 								}
 
-								backupPath := fmt.Sprintf("%s/%s.bak.%d", backupDir, conflictFile, os.Getpid())
+								backupPath := filepath.Join(backupDir, fmt.Sprintf("%s.bak.%d", conflictFile, os.Getpid()))
+								// Ensure parent directory of backupPath exists
+								os.MkdirAll(filepath.Dir(backupPath), 0755)
+
 								if moveErr := os.Rename(fullPath, backupPath); moveErr == nil {
 									m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Files differed! Backed up %s", conflictFile))
 									if diffStr != "" {
