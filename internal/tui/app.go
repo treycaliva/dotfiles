@@ -102,7 +102,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return a, tea.Quit
 		case "q":
-			if a.screen != ScreenProgress {
+			if a.screen != ScreenProgress && a.screen != ScreenDiff {
 				return a, tea.Quit
 			}
 		}
@@ -133,6 +133,8 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		a.current = NewSelectScreen(a.state)
 	case ScreenPreview:
 		a.current = NewPreviewScreen(a.state)
+	case ScreenDiff:
+		a.current = NewDiffScreen(a.state, a.state.DiffPkg, a.state.DiffFile)
 	}
 
 	return a, a.current.Init()
