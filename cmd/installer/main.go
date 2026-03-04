@@ -208,6 +208,7 @@ func (m model) doInstall() tea.Cmd {
 		}
 
 		for _, pkg := range m.selectedProf.Packages {
+			m.installLog = append(m.installLog, fmt.Sprintf("Stowing %s...", pkg))
 			cmd := exec.Command("stow", "-d", cwd, "-t", home, "--restow", pkg)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -216,19 +217,24 @@ func (m model) doInstall() tea.Cmd {
 					lines := strings.Split(outStr, "\n")
 					conflictsResolved := false
 					for _, line := range lines {
+						// Look for the filename after "existing target is not owned by stow:" or similar
 						if strings.Contains(line, "* existing target") {
-							parts := strings.Split(line, ": ")
+							// Find the part after the last colon
+							parts := strings.Split(line, ":")
 							if len(parts) > 1 {
-								conflictFile := strings.TrimSpace(parts[1])
+								conflictFile := strings.TrimSpace(parts[len(parts)-1])
 								fullPath := home + "/" + conflictFile
 								
-								backupDir := home + "/.dotfiles-backup"
-								os.MkdirAll(backupDir, 0755)
-								backupPath := fmt.Sprintf("%s/%s.bak.%d", backupDir, conflictFile, os.Getpid())
-								
-								if moveErr := os.Rename(fullPath, backupPath); moveErr == nil {
-									m.installLog = append(m.installLog, fmt.Sprintf("Backed up %s to %s", conflictFile, backupPath))
-									conflictsResolved = true
+								// Ensure we don't try to backup something that doesn't exist
+								if _, statErr := os.Stat(fullPath); statErr == nil {
+									backupDir := home + "/.dotfiles-backup"
+									os.MkdirAll(backupDir, 0755)
+									backupPath := fmt.Sprintf("%s/%s.bak.%d", backupDir, conflictFile, os.Getpid())
+									
+									if moveErr := os.Rename(fullPath, backupPath); moveErr == nil {
+										m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Backed up %s", conflictFile))
+										conflictsResolved = true
+									}
 								}
 							}
 						}
@@ -238,12 +244,14 @@ func (m model) doInstall() tea.Cmd {
 						cmd = exec.Command("stow", "-d", cwd, "-t", home, "--restow", pkg)
 						output, err = cmd.CombinedOutput()
 						if err == nil {
+							m.installLog = append(m.installLog, fmt.Sprintf("  - Successfully stowed %s after resolution", pkg))
 							continue
 						}
 					}
 				}
 				return errMsg{fmt.Errorf("failed to stow %s: %v\nOutput: %s", pkg, err, string(output))}
 			}
+			m.installLog = append(m.installLog, fmt.Sprintf("  - Successfully stowed %s", pkg))
 		}
 
 		return installMsg("Installation Complete!")
