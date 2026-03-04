@@ -6,6 +6,7 @@ import (
 	"github.com/treycaliva/dotfiles/internal/stow"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Screen int
@@ -66,11 +67,12 @@ type NavigateMsg struct {
 }
 
 type App struct {
-	state   *AppState
-	screen  Screen
-	current ScreenModel
-	width   int
-	height  int
+	state    *AppState
+	screen   Screen
+	current  ScreenModel
+	width    int
+	height   int
+	showHelp bool
 }
 
 func NewApp(cfg *config.Config, plat platform.Info, dotfilesDir, homeDir string) App {
@@ -101,10 +103,21 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return a, tea.Quit
+		case "?":
+			a.showHelp = !a.showHelp
+			return a, nil
 		case "q":
+			if a.showHelp {
+				a.showHelp = false
+				return a, nil
+			}
 			if a.screen != ScreenProgress && a.screen != ScreenDiff {
 				return a, tea.Quit
 			}
+		}
+		// Swallow all other keys while help is visible.
+		if a.showHelp {
+			return a, nil
 		}
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
@@ -119,7 +132,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a App) View() string {
-	return a.current.View()
+	view := a.current.View()
+	if a.showHelp {
+		help := Styles.Border.Padding(1, 2).Render(helpText())
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, help)
+	}
+	return view
 }
 
 func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
@@ -143,4 +161,31 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return a, a.current.Init()
+}
+
+func helpText() string {
+	return `  Keyboard Shortcuts
+
+  Navigation
+    enter     Proceed / confirm
+    esc       Go back one screen
+    q         Quit
+    ?         Toggle this help
+
+  Select Screen
+    j/k       Move cursor
+    space     Toggle package
+    m/s/f     Apply profile (minimal/server/full)
+    a         Toggle all
+    u         Switch install/unstow mode
+
+  Preview Screen
+    d         View diff for conflicting file
+
+  Diff View
+    j/k       Scroll
+    esc       Back to preview
+
+  Summary
+    r         Start over`
 }
