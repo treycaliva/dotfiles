@@ -201,7 +201,7 @@ func (m model) doInstall() tea.Cmd {
 			return errMsg{err}
 		}
 
-		// 2. Stow Packages
+		// 3. Stow Packages
 		cwd, err := os.Getwd()
 		if err != nil {
 			return errMsg{err}
@@ -238,14 +238,40 @@ func (m model) doInstall() tea.Cmd {
 
 						if conflictFile != "" {
 							fullPath := home + "/" + conflictFile
-							// Ensure we don't try to backup something that doesn't exist
-							if _, statErr := os.Stat(fullPath); statErr == nil {
-								backupDir := home + "/.dotfiles-backup"
-								os.MkdirAll(backupDir, 0755)
+							repoPath := cwd + "/" + pkg + "/" + conflictFile
+
+							// Check if files are identical
+							isIdentical := false
+							repoData, err1 := os.ReadFile(repoPath)
+							homeData, err2 := os.ReadFile(fullPath)
+							if err1 == nil && err2 == nil && string(repoData) == string(homeData) {
+								isIdentical = true
+							}
+
+							backupDir := home + "/.dotfiles-backup"
+							os.MkdirAll(backupDir, 0755)
+
+							if isIdentical {
+								// If identical, we can just remove it to let stow create the link
+								if removeErr := os.Remove(fullPath); removeErr == nil {
+									m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Removed identical file %s", conflictFile))
+									conflictsResolved = true
+								}
+							} else {
+								// If different, show a diff summary and backup
+								diffCmd := exec.Command("diff", "-u", repoPath, fullPath)
+								diffOut, _ := diffCmd.CombinedOutput()
+								diffStr := string(diffOut)
+								if len(diffStr) > 500 {
+									diffStr = diffStr[:500] + "\n... (diff truncated)"
+								}
+
 								backupPath := fmt.Sprintf("%s/%s.bak.%d", backupDir, conflictFile, os.Getpid())
-								
 								if moveErr := os.Rename(fullPath, backupPath); moveErr == nil {
-									m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Backed up %s", conflictFile))
+									m.installLog = append(m.installLog, fmt.Sprintf("  - Resolved conflict: Files differed! Backed up %s", conflictFile))
+									if diffStr != "" {
+										m.installLog = append(m.installLog, "    Diff preview:\n"+diffStr)
+									}
 									conflictsResolved = true
 								}
 							}
