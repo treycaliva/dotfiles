@@ -19,6 +19,7 @@ const (
 	stateProfileSelection state = iota
 	stateGitName
 	stateGitEmail
+	stateDirenvSetup
 	stateInstalling
 	stateDone
 )
@@ -46,13 +47,16 @@ var (
 )
 
 type model struct {
-	state          state
-	cursor         int
-	selectedProf   *Profile
-	nameInput      textinput.Model
-	emailInput     textinput.Model
-	installLog     []string
-	err            error
+	state           state
+	cursor          int
+	selectedProf    *Profile
+	nameInput       textinput.Model
+	emailInput      textinput.Model
+	direnvCtxCursor int
+	opAccountInput  textinput.Model
+	direnvStep      int
+	installLog      []string
+	err             error
 }
 
 func initialModel() model {
@@ -63,10 +67,15 @@ func initialModel() model {
 	tiEmail := textinput.New()
 	tiEmail.Placeholder = "jane@example.com"
 
+	tiAccount := textinput.New()
+	tiAccount.Placeholder = "my.1password.com"
+	tiAccount.SetValue("my.1password.com")
+
 	return model{
-		state:      stateProfileSelection,
-		nameInput:  tiName,
-		emailInput: tiEmail,
+		state:          stateProfileSelection,
+		nameInput:      tiName,
+		emailInput:     tiEmail,
+		opAccountInput: tiAccount,
 	}
 }
 
@@ -98,6 +107,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateGitName(msg)
 	case stateGitEmail:
 		return m.updateGitEmail(msg)
+	case stateDirenvSetup:
+		return m.updateDirenvSetup(msg)
 	case stateInstalling:
 		return m.updateInstalling(msg)
 	case stateDone:
@@ -151,12 +162,48 @@ func (m model) updateGitEmail(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
 			if m.emailInput.Value() != "" {
-				m.state = stateInstalling
-				return m, m.doInstall()
+				m.state = stateDirenvSetup
+				m.opAccountInput.Focus()
+				return m, textinput.Blink
 			}
 		}
 	}
 	m.emailInput, cmd = m.emailInput.Update(msg)
+	return m, cmd
+}
+
+var direnvContexts = []string{"personal", "work"}
+
+func (m model) updateDirenvSetup(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if m.direnvStep == 0 {
+			switch msg.String() {
+			case "up", "k":
+				if m.direnvCtxCursor > 0 {
+					m.direnvCtxCursor--
+				}
+			case "down", "j":
+				if m.direnvCtxCursor < len(direnvContexts)-1 {
+					m.direnvCtxCursor++
+				}
+			case "enter":
+				m.direnvStep = 1
+				return m, textinput.Blink
+			}
+		} else {
+			if msg.Type == tea.KeyEnter {
+				if m.opAccountInput.Value() != "" {
+					m.state = stateInstalling
+					return m, m.doInstall()
+				}
+			}
+		}
+	}
+	if m.direnvStep == 1 {
+		m.opAccountInput, cmd = m.opAccountInput.Update(msg)
+	}
 	return m, cmd
 }
 
@@ -370,6 +417,28 @@ func (m model) View() string {
 		b.WriteString("What is your Email?\n")
 		b.WriteString(m.emailInput.View() + "\n\n")
 		b.WriteString(infoStyle.Render("Press Enter to continue."))
+
+	case stateDirenvSetup:
+		if m.direnvStep == 0 {
+			b.WriteString("Set up direnv + 1Password.\n\n")
+			b.WriteString("Which context is this machine?\n\n")
+			for i, ctx := range direnvContexts {
+				cursor := "  "
+				style := itemStyle
+				if m.direnvCtxCursor == i {
+					cursor = "> "
+					style = selStyle
+				}
+				b.WriteString(fmt.Sprintf("%s%s\n", cursor, style.Render(ctx)))
+			}
+			b.WriteString("\n" + infoStyle.Render("Press Enter to confirm."))
+		} else {
+			b.WriteString("Set up direnv + 1Password.\n\n")
+			b.WriteString("1Password account shorthand:\n")
+			b.WriteString(infoStyle.Render("Run 'op account list' to find yours.\n\n"))
+			b.WriteString(m.opAccountInput.View() + "\n\n")
+			b.WriteString(infoStyle.Render("Press Enter to begin installation."))
+		}
 
 	case stateInstalling:
 		b.WriteString("Installing packages and configuring dotfiles...\n")
