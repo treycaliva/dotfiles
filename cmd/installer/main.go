@@ -31,9 +31,9 @@ type Profile struct {
 }
 
 var profiles = []Profile{
-	{Name: "Base", Description: "Core CLI tools (zsh, tmux, vim, git)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k"}},
-	{Name: "Desktop", Description: "Base + GUI terminals (ghostty, alacritty)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty"}},
-	{Name: "Dev", Description: "Desktop + Dev tools (nvim)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty", "nvim"}},
+	{Name: "Base", Description: "Core CLI tools (zsh, tmux, vim, git, direnv)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "direnv"}},
+	{Name: "Desktop", Description: "Base + GUI terminals (ghostty, alacritty)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty", "direnv"}},
+	{Name: "Dev", Description: "Desktop + Dev tools (nvim)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty", "nvim", "direnv"}},
 }
 
 var (
