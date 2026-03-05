@@ -22,5 +22,10 @@ op_inject() {
     return 1
   fi
 
-  eval "$(op inject --account "$account" -i "$template" | sed 's/^/export /')"
+  local injected
+  injected="$(op inject --account "$account" -i "$template")" || {
+    echo "direnv: op inject failed — check 'op signin --account $account'" >&2
+    return 1
+  }
+  eval "$injected"
 }
