@@ -213,7 +213,7 @@ type errMsg struct{ err error }
 // upsertZshrcLocal sets KEY=value in ~/.zshrc.local, adding the line if absent
 // or replacing it if already present.
 func upsertZshrcLocal(path, key, value string) error {
-	export := fmt.Sprintf("export %s=%s", key, value)
+	export := fmt.Sprintf(`export %s="%s"`, key, value)
 
 	data, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
@@ -233,7 +233,7 @@ func upsertZshrcLocal(path, key, value string) error {
 		lines = append(lines, export)
 	}
 
-	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
+	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0600)
 }
 
 func (m model) doInstall() tea.Cmd {
@@ -398,7 +398,7 @@ func (m model) doInstall() tea.Cmd {
 				m.installLog = append(m.installLog, "  - Ran: direnv allow ~/.envrc")
 			}
 		} else {
-			m.installLog = append(m.installLog, "  - Skipped direnv allow: ~/.envrc not found (stow may need to run first)")
+			m.installLog = append(m.installLog, "  - Skipped direnv allow: ~/.envrc not found (is 'direnv' included in this profile?)")
 		}
 
 		// Check op is signed in (warn-only)
