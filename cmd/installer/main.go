@@ -210,6 +210,32 @@ func (m model) updateDirenvSetup(msg tea.Msg) (tea.Model, tea.Cmd) {
 type installMsg string
 type errMsg struct{ err error }
 
+// upsertZshrcLocal sets KEY=value in ~/.zshrc.local, adding the line if absent
+// or replacing it if already present.
+func upsertZshrcLocal(path, key, value string) error {
+	export := fmt.Sprintf("export %s=%s", key, value)
+
+	data, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	lines := strings.Split(string(data), "\n")
+	found := false
+	for i, line := range lines {
+		if strings.HasPrefix(line, "export "+key+"=") {
+			lines[i] = export
+			found = true
+			break
+		}
+	}
+	if !found {
+		lines = append(lines, export)
+	}
+
+	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
+}
+
 func (m model) doInstall() tea.Cmd {
 	return func() tea.Msg {
 		home, err := os.UserHomeDir()
@@ -347,6 +373,40 @@ func (m model) doInstall() tea.Cmd {
 			if pkg == "tmux" {
 				m.installTmuxTheme(home)
 			}
+		}
+
+		// Write context and account to ~/.zshrc.local
+		zshrcLocal := filepath.Join(home, ".zshrc.local")
+		ctx := direnvContexts[m.direnvCtxCursor]
+		account := m.opAccountInput.Value()
+
+		if err := upsertZshrcLocal(zshrcLocal, "DOTFILES_CONTEXT", ctx); err != nil {
+			return errMsg{fmt.Errorf("failed to write DOTFILES_CONTEXT to ~/.zshrc.local: %v", err)}
+		}
+		if err := upsertZshrcLocal(zshrcLocal, "DOTFILES_OP_ACCOUNT", account); err != nil {
+			return errMsg{fmt.Errorf("failed to write DOTFILES_OP_ACCOUNT to ~/.zshrc.local: %v", err)}
+		}
+		m.installLog = append(m.installLog, fmt.Sprintf("  - Wrote DOTFILES_CONTEXT=%s and DOTFILES_OP_ACCOUNT=%s to ~/.zshrc.local", ctx, account))
+
+		// Allow global ~/.envrc
+		envrcPath := filepath.Join(home, ".envrc")
+		if _, err := os.Stat(envrcPath); err == nil {
+			allowCmd := exec.Command("direnv", "allow", envrcPath)
+			if output, err := allowCmd.CombinedOutput(); err != nil {
+				m.installLog = append(m.installLog, fmt.Sprintf("  - Warning: 'direnv allow' failed: %v\n    Output: %s\n    Run manually: direnv allow ~/.envrc", err, string(output)))
+			} else {
+				m.installLog = append(m.installLog, "  - Ran: direnv allow ~/.envrc")
+			}
+		} else {
+			m.installLog = append(m.installLog, "  - Skipped direnv allow: ~/.envrc not found (stow may need to run first)")
+		}
+
+		// Check op is signed in (warn-only)
+		opCheckCmd := exec.Command("op", "account", "list")
+		if output, err := opCheckCmd.CombinedOutput(); err != nil || strings.TrimSpace(string(output)) == "" {
+			m.installLog = append(m.installLog, "  - Warning: no 1Password account found. Run 'op signin' to authenticate.")
+		} else {
+			m.installLog = append(m.installLog, "  - 1Password CLI: account found")
 		}
 
 		return installMsg("Installation Complete!")
