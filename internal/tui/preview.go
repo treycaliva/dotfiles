@@ -143,6 +143,14 @@ func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 				})
 			}
 		case "enter":
+			// Route through direnv config screen when direnv is being installed.
+			if !p.state.Unstowing {
+				for _, pkg := range p.state.Selected {
+					if pkg == "direnv" {
+						return p, func() tea.Msg { return NavigateMsg{Screen: ScreenDirenvConfig} }
+					}
+				}
+			}
 			return p, func() tea.Msg { return NavigateMsg{Screen: ScreenProgress} }
 		}
 	case clearFlashMsg:
