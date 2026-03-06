@@ -185,6 +185,7 @@ func (s *SelectScreen) View() tea.View {
 			BorderForeground(Theme.Cyan).
 			Foreground(Theme.Cyan).
 			Padding(0, 1).
+			MarginRight(2).
 			Render(fmt.Sprintf("[%s] %s", p.key, p.label))
 		pillParts = append(pillParts, pill)
 	}
