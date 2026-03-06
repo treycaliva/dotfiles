@@ -60,7 +60,7 @@ func PatchTemplate(homeDir string, setup *Setup) error {
 
 	var comments []string
 	if data, err := os.ReadFile(path); err == nil {
-		for _, line := range strings.Split(string(data), "\n") {
+		for line := range strings.SplitSeq(string(data), "\n") {
 			if strings.HasPrefix(strings.TrimSpace(line), "#") {
 				comments = append(comments, line)
 			}
