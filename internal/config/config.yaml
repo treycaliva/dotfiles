@@ -21,6 +21,9 @@ packages:
   git:
     description: "Git config and aliases"
     deps: [git]
+  direnv:
+    description: "direnv + 1Password secret injection"
+    deps: [direnv, op]
   p10k:
     description: "Powerlevel10k prompt theme"
     deps: []
