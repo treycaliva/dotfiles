@@ -124,6 +124,7 @@ ensure_stow() {
 # Returns a space-separated list on stdout; empty string means no deps.
 deps_for_pkg() {
     case "$1" in
+        direnv)    echo "direnv" ;;
         zsh)       echo "zsh zoxide fzf" ;;
         tmux)      echo "tmux" ;;
         vim)       echo "vim" ;;
@@ -360,7 +361,7 @@ validate_pkg() {
 }
 
 # ── Package list ──────────────────────────────────────────────────────
-PACKAGES="zsh tmux vim nvim alacritty ghostty git p10k zprezto"
+PACKAGES="zsh tmux vim nvim alacritty ghostty git direnv p10k zprezto"
 
 # ── Interactive menu ─────────────────────────────────────────────────
 show_menu() {

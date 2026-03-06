@@ -1,0 +1,31 @@
+# direnvrc — sourced by direnv before every .envrc
+# Provides op_inject: pulls secrets from 1Password into the environment.
+#
+# Required env vars (set in ~/.zshrc.local by the dotfiles installer):
+#   DOTFILES_CONTEXT     — "personal" or "work" (default: personal)
+#   DOTFILES_OP_ACCOUNT  — op account shorthand, e.g. my.1password.com
+
+op_inject() {
+  local context="${DOTFILES_CONTEXT:-personal}"
+  local account="${DOTFILES_OP_ACCOUNT:-}"
+  local template="${HOME}/.config/direnv/templates/${context}.env.tpl"
+
+  if [ ! -f "$template" ]; then
+    echo "direnv: template not found: $template" >&2
+    echo "direnv: set DOTFILES_CONTEXT to 'personal' or 'work' in ~/.zshrc.local" >&2
+    return 1
+  fi
+
+  if [ -z "$account" ]; then
+    echo "direnv: DOTFILES_OP_ACCOUNT is not set" >&2
+    echo "direnv: run 'op account list' and set DOTFILES_OP_ACCOUNT in ~/.zshrc.local" >&2
+    return 1
+  fi
+
+  local injected
+  injected="$(op inject --account "$account" -i "$template")" || {
+    echo "direnv: op inject failed — check 'op signin --account $account'" >&2
+    return 1
+  }
+  echo "$injected" | dotenv /dev/stdin
+}

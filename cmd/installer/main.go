@@ -19,6 +19,7 @@ const (
 	stateProfileSelection state = iota
 	stateGitName
 	stateGitEmail
+	stateDirenvSetup
 	stateInstalling
 	stateDone
 )
@@ -30,9 +31,9 @@ type Profile struct {
 }
 
 var profiles = []Profile{
-	{Name: "Base", Description: "Core CLI tools (zsh, tmux, vim, git)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k"}},
-	{Name: "Desktop", Description: "Base + GUI terminals (ghostty, alacritty)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty"}},
-	{Name: "Dev", Description: "Desktop + Dev tools (nvim)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty", "nvim"}},
+	{Name: "Base", Description: "Core CLI tools (zsh, tmux, vim, git, direnv)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "direnv"}},
+	{Name: "Desktop", Description: "Base + GUI terminals (ghostty, alacritty)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty", "direnv"}},
+	{Name: "Dev", Description: "Desktop + Dev tools (nvim)", Packages: []string{"zsh", "tmux", "vim", "git", "p10k", "ghostty", "alacritty", "nvim", "direnv"}},
 }
 
 var (
@@ -46,13 +47,16 @@ var (
 )
 
 type model struct {
-	state          state
-	cursor         int
-	selectedProf   *Profile
-	nameInput      textinput.Model
-	emailInput     textinput.Model
-	installLog     []string
-	err            error
+	state           state
+	cursor          int
+	selectedProf    *Profile
+	nameInput       textinput.Model
+	emailInput      textinput.Model
+	direnvCtxCursor int
+	opAccountInput  textinput.Model
+	direnvStep      int
+	installLog      []string
+	err             error
 }
 
 func initialModel() model {
@@ -63,10 +67,15 @@ func initialModel() model {
 	tiEmail := textinput.New()
 	tiEmail.Placeholder = "jane@example.com"
 
+	tiAccount := textinput.New()
+	tiAccount.Placeholder = "my.1password.com"
+	tiAccount.SetValue("my.1password.com")
+
 	return model{
-		state:      stateProfileSelection,
-		nameInput:  tiName,
-		emailInput: tiEmail,
+		state:          stateProfileSelection,
+		nameInput:      tiName,
+		emailInput:     tiEmail,
+		opAccountInput: tiAccount,
 	}
 }
 
@@ -98,6 +107,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateGitName(msg)
 	case stateGitEmail:
 		return m.updateGitEmail(msg)
+	case stateDirenvSetup:
+		return m.updateDirenvSetup(msg)
 	case stateInstalling:
 		return m.updateInstalling(msg)
 	case stateDone:
@@ -151,8 +162,9 @@ func (m model) updateGitEmail(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
 			if m.emailInput.Value() != "" {
-				m.state = stateInstalling
-				return m, m.doInstall()
+				m.state = stateDirenvSetup
+				m.opAccountInput.Focus()
+				return m, textinput.Blink
 			}
 		}
 	}
@@ -160,8 +172,69 @@ func (m model) updateGitEmail(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+var direnvContexts = []string{"personal", "work"}
+
+func (m model) updateDirenvSetup(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if m.direnvStep == 0 {
+			switch msg.String() {
+			case "up", "k":
+				if m.direnvCtxCursor > 0 {
+					m.direnvCtxCursor--
+				}
+			case "down", "j":
+				if m.direnvCtxCursor < len(direnvContexts)-1 {
+					m.direnvCtxCursor++
+				}
+			case "enter":
+				m.direnvStep = 1
+				return m, textinput.Blink
+			}
+		} else {
+			if msg.Type == tea.KeyEnter {
+				if m.opAccountInput.Value() != "" {
+					m.state = stateInstalling
+					return m, m.doInstall()
+				}
+			}
+		}
+	}
+	if m.direnvStep == 1 {
+		m.opAccountInput, cmd = m.opAccountInput.Update(msg)
+	}
+	return m, cmd
+}
+
 type installMsg string
 type errMsg struct{ err error }
+
+// upsertZshrcLocal sets KEY=value in ~/.zshrc.local, adding the line if absent
+// or replacing it if already present.
+func upsertZshrcLocal(path, key, value string) error {
+	export := fmt.Sprintf(`export %s="%s"`, key, value)
+
+	data, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	lines := strings.Split(string(data), "\n")
+	found := false
+	for i, line := range lines {
+		if strings.HasPrefix(line, "export "+key+"=") {
+			lines[i] = export
+			found = true
+			break
+		}
+	}
+	if !found {
+		lines = append(lines, export)
+	}
+
+	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0600)
+}
 
 func (m model) doInstall() tea.Cmd {
 	return func() tea.Msg {
@@ -302,6 +375,40 @@ func (m model) doInstall() tea.Cmd {
 			}
 		}
 
+		// Write context and account to ~/.zshrc.local
+		zshrcLocal := filepath.Join(home, ".zshrc.local")
+		ctx := direnvContexts[m.direnvCtxCursor]
+		account := m.opAccountInput.Value()
+
+		if err := upsertZshrcLocal(zshrcLocal, "DOTFILES_CONTEXT", ctx); err != nil {
+			return errMsg{fmt.Errorf("failed to write DOTFILES_CONTEXT to ~/.zshrc.local: %v", err)}
+		}
+		if err := upsertZshrcLocal(zshrcLocal, "DOTFILES_OP_ACCOUNT", account); err != nil {
+			return errMsg{fmt.Errorf("failed to write DOTFILES_OP_ACCOUNT to ~/.zshrc.local: %v", err)}
+		}
+		m.installLog = append(m.installLog, fmt.Sprintf("  - Wrote DOTFILES_CONTEXT=%s and DOTFILES_OP_ACCOUNT=%s to ~/.zshrc.local", ctx, account))
+
+		// Allow global ~/.envrc
+		envrcPath := filepath.Join(home, ".envrc")
+		if _, err := os.Stat(envrcPath); err == nil {
+			allowCmd := exec.Command("direnv", "allow", envrcPath)
+			if output, err := allowCmd.CombinedOutput(); err != nil {
+				m.installLog = append(m.installLog, fmt.Sprintf("  - Warning: 'direnv allow' failed: %v\n    Output: %s\n    Run manually: direnv allow ~/.envrc", err, string(output)))
+			} else {
+				m.installLog = append(m.installLog, "  - Ran: direnv allow ~/.envrc")
+			}
+		} else {
+			m.installLog = append(m.installLog, "  - Skipped direnv allow: ~/.envrc not found (is 'direnv' included in this profile?)")
+		}
+
+		// Check op is signed in (warn-only)
+		opCheckCmd := exec.Command("op", "account", "list")
+		if output, err := opCheckCmd.CombinedOutput(); err != nil || strings.TrimSpace(string(output)) == "" {
+			m.installLog = append(m.installLog, "  - Warning: no 1Password account found. Run 'op signin' to authenticate.")
+		} else {
+			m.installLog = append(m.installLog, "  - 1Password CLI: account found")
+		}
+
 		return installMsg("Installation Complete!")
 	}
 }
@@ -370,6 +477,28 @@ func (m model) View() string {
 		b.WriteString("What is your Email?\n")
 		b.WriteString(m.emailInput.View() + "\n\n")
 		b.WriteString(infoStyle.Render("Press Enter to continue."))
+
+	case stateDirenvSetup:
+		if m.direnvStep == 0 {
+			b.WriteString("Set up direnv + 1Password.\n\n")
+			b.WriteString("Which context is this machine?\n\n")
+			for i, ctx := range direnvContexts {
+				cursor := "  "
+				style := itemStyle
+				if m.direnvCtxCursor == i {
+					cursor = "> "
+					style = selStyle
+				}
+				b.WriteString(fmt.Sprintf("%s%s\n", cursor, style.Render(ctx)))
+			}
+			b.WriteString("\n" + infoStyle.Render("Press Enter to confirm."))
+		} else {
+			b.WriteString("Set up direnv + 1Password.\n\n")
+			b.WriteString("1Password account shorthand:\n")
+			b.WriteString(infoStyle.Render("Run 'op account list' to find yours.\n\n"))
+			b.WriteString(m.opAccountInput.View() + "\n\n")
+			b.WriteString(infoStyle.Render("Press Enter to begin installation."))
+		}
 
 	case stateInstalling:
 		b.WriteString("Installing packages and configuring dotfiles...\n")
