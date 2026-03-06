@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -39,7 +40,13 @@ func (s *SelectScreen) SetSize(w, h int) {
 }
 
 func (s *SelectScreen) StatusBar() []KeyBinding {
-	return []KeyBinding{}
+	return []KeyBinding{
+		{Key: "j/k", Help: "move"},
+		{Key: "space", Help: "toggle"},
+		{Key: "enter", Help: "confirm"},
+		{Key: "u", Help: "unstow mode"},
+		{Key: "esc", Help: "back"},
+	}
 }
 
 func (s *SelectScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
@@ -122,41 +129,56 @@ func (s *SelectScreen) applyProfile(name string) {
 
 func (s *SelectScreen) View() tea.View {
 	var b strings.Builder
-
-	mode := "Install"
-	if s.unstowing {
-		mode = "Unstow"
-	}
-	b.WriteString(Styles.Title.Render(fmt.Sprintf("  Select Packages (%s mode)", mode)))
-	b.WriteString("\n\n")
+	b.WriteString("\n")
 
 	for i, name := range s.packages {
-		cursor := "  "
-		if s.cursor == i {
-			cursor = Styles.Selected.Render("> ")
-		}
-
-		check := "[ ]"
+		var checked string
 		if s.checked[i] {
-			check = Styles.Selected.Render("[x]")
-		}
-
-		var status string
-		if s.state.StowStatus[name] {
-			status = Icons.Success
+			checked = Styles.Selected.Render("● ")
 		} else {
-			status = Icons.Warning
+			checked = Styles.Dimmed.Render("○ ")
 		}
 
-		desc := s.state.Config.Packages[name].Description
-		b.WriteString(fmt.Sprintf("%s%s %s %-12s %s\n", cursor, check, status, name, desc))
+		var statusIcon string
+		if s.state.StowStatus[name] {
+			statusIcon = Icons.Success + " "
+		} else {
+			statusIcon = Icons.Warning + " "
+		}
+
+		desc := Styles.Dimmed.Render(s.state.Config.Packages[name].Description)
+		content := fmt.Sprintf("  %s%s%-14s %s", checked, statusIcon, name, desc)
+
+		if s.cursor == i {
+			contentW := lipgloss.Width(content)
+			pad := s.width - contentW
+			if pad < 0 {
+				pad = 0
+			}
+			padded := content + strings.Repeat(" ", pad)
+			b.WriteString(Styles.HighlightRow.Render(padded) + "\n")
+		} else {
+			b.WriteString(content + "\n")
+		}
 	}
 
 	b.WriteString("\n")
-	b.WriteString("  Profiles: ")
-	b.WriteString(Styles.Selected.Render("m") + "=minimal  ")
-	b.WriteString(Styles.Selected.Render("s") + "=server  ")
-	b.WriteString(Styles.Selected.Render("f") + "=full  ")
-	b.WriteString(Styles.Selected.Render("a") + "=toggle all\n")
+
+	// Profile pills
+	profiles := []struct{ key, label string }{
+		{"m", "minimal"}, {"s", "server"}, {"f", "full"},
+	}
+	var pillParts []string
+	for _, p := range profiles {
+		pill := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(Theme.Cyan).
+			Foreground(Theme.Cyan).
+			Padding(0, 1).
+			Render(fmt.Sprintf("[%s] %s", p.key, p.label))
+		pillParts = append(pillParts, pill)
+	}
+	b.WriteString("  " + strings.Join(pillParts, "  ") + "\n")
+
 	return tea.NewView(b.String())
 }
