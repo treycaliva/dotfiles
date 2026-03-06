@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/treycaliva/dotfiles/internal/direnv"
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 	"github.com/treycaliva/dotfiles/internal/validate"
@@ -222,6 +223,30 @@ func (p *ProgressScreen) processNext() tea.Cmd {
 					logs = append(logs, fmt.Sprintf("[%s] validation warning: %v", pkg, vr.Err))
 				} else {
 					logs = append(logs, fmt.Sprintf("[%s] validation passed", pkg))
+				}
+			}
+
+			// Post-stow direnv configuration (writes ~/.zshrc.local, patches template, allows .envrc).
+			if pkg == "direnv" && state.DirenvConfig != nil {
+				logs = append(logs, fmt.Sprintf("[%s] writing ~/.zshrc.local ...", pkg))
+				if err := direnv.WriteZshrcLocal(state.HomeDir, state.DirenvConfig); err != nil {
+					logs = append(logs, fmt.Sprintf("[%s] warning: could not write ~/.zshrc.local: %v", pkg, err))
+				} else {
+					logs = append(logs, fmt.Sprintf("[%s] ~/.zshrc.local updated", pkg))
+				}
+
+				logs = append(logs, fmt.Sprintf("[%s] patching template ...", pkg))
+				if err := direnv.PatchTemplate(state.HomeDir, state.DirenvConfig); err != nil {
+					logs = append(logs, fmt.Sprintf("[%s] warning: could not patch template: %v", pkg, err))
+				} else {
+					logs = append(logs, fmt.Sprintf("[%s] template updated", pkg))
+				}
+
+				logs = append(logs, fmt.Sprintf("[%s] running direnv allow ~/.envrc ...", pkg))
+				if err := direnv.AllowEnvrc(state.HomeDir); err != nil {
+					logs = append(logs, fmt.Sprintf("[%s] warning: direnv allow failed: %v", pkg, err))
+				} else {
+					logs = append(logs, fmt.Sprintf("[%s] direnv allow done", pkg))
 				}
 			}
 		}
