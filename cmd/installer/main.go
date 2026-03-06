@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/treycaliva/dotfiles/internal/config"
 	"github.com/treycaliva/dotfiles/internal/platform"
@@ -37,7 +37,7 @@ func main() {
 	homeDir, _ := os.UserHomeDir()
 
 	app := tui.NewApp(cfg, plat, dotfilesDir, homeDir)
-	p := tea.NewProgram(app, tea.WithAltScreen())
+	p := tea.NewProgram(app)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

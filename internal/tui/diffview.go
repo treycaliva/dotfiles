@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/treycaliva/dotfiles/internal/stow"
 )
@@ -22,6 +22,8 @@ type DiffScreen struct {
 	pkg      string
 	file     string
 	ready    bool
+	width    int
+	height   int
 }
 
 func NewDiffScreen(state *AppState, pkg, file string) *DiffScreen {
@@ -29,6 +31,36 @@ func NewDiffScreen(state *AppState, pkg, file string) *DiffScreen {
 		state: state,
 		pkg:   pkg,
 		file:  file,
+	}
+}
+
+func (d *DiffScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	d.width = w
+	d.height = h
+	vw := w - 4
+	vh := h - 2
+	if vh < 3 {
+		vh = 3
+	}
+	if !d.ready {
+		d.viewport = viewport.New(vw, vh)
+		d.ready = true
+	} else {
+		d.viewport.Width = vw
+		d.viewport.Height = vh
+	}
+}
+
+func (d *DiffScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{
+		{Key: "j/k", Help: "scroll"},
+		{Key: "esc", Help: "back"},
 	}
 }
 
@@ -51,41 +83,35 @@ func (d *DiffScreen) Init() tea.Cmd {
 func (d *DiffScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		headerHeight := 3 // title + blank line
-		footerHeight := 2 // status bar + blank line
-		height := msg.Height - headerHeight - footerHeight
-		if height < 1 {
-			height = 1
-		}
-		if !d.ready {
-			d.viewport = viewport.New(msg.Width, height)
-			d.ready = true
-		} else {
-			d.viewport.Width = msg.Width
-			d.viewport.Height = height
-		}
+		// Sizing handled by App via SetSize()
 		return d, nil
 	case diffContentMsg:
 		styled := d.styleDiff(msg.content)
-		if d.ready {
-			d.viewport.SetContent(styled)
-		} else {
-			// Store content; it will be set when viewport initializes
-			d.viewport.SetContent(styled)
-		}
+		d.viewport.SetContent(styled)
 		return d, nil
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc", "q":
 			return d, func() tea.Msg { return NavigateMsg{Screen: ScreenPreview} }
+		case "down", "j":
+			if d.ready {
+				d.viewport.ScrollDown(1)
+			}
+		case "up", "k":
+			if d.ready {
+				d.viewport.ScrollUp(1)
+			}
+		case "d":
+			if d.ready {
+				d.viewport.HalfPageDown()
+			}
+		case "u":
+			if d.ready {
+				d.viewport.HalfPageUp()
+			}
 		}
 	}
 
-	if d.ready {
-		var cmd tea.Cmd
-		d.viewport, cmd = d.viewport.Update(msg)
-		return d, cmd
-	}
 	return d, nil
 }
 
@@ -109,24 +135,16 @@ func (d *DiffScreen) styleDiff(raw string) string {
 	return b.String()
 }
 
-func (d *DiffScreen) View() string {
+func (d *DiffScreen) View() tea.View {
 	var b strings.Builder
-
-	title := fmt.Sprintf("  Diff: %s — ~/%s", d.pkg, d.file)
-	b.WriteString(Styles.Title.Render(title))
-	b.WriteString("\n\n")
 
 	if !d.ready {
 		b.WriteString("  Loading...\n")
-		return b.String()
+		return tea.NewView(b.String())
 	}
 
 	b.WriteString(d.viewport.View())
 	b.WriteString("\n")
 
-	info := fmt.Sprintf(" %3.f%% ", d.viewport.ScrollPercent()*100)
-	b.WriteString(Styles.StatusBar.Render(fmt.Sprintf("  q/esc: back  %s", info)))
-	b.WriteString("\n")
-
-	return b.String()
+	return tea.NewView(b.String())
 }

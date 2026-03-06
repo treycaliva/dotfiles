@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
 )
 
 type HomeScreen struct {
-	state *AppState
+	state  *AppState
+	width  int
+	height int
 }
 
 func NewHomeScreen(state *AppState) *HomeScreen {
@@ -17,9 +20,26 @@ func NewHomeScreen(state *AppState) *HomeScreen {
 
 func (h *HomeScreen) Init() tea.Cmd { return nil }
 
+func (h *HomeScreen) SetSize(w, height int) {
+	if w < 10 {
+		w = 10
+	}
+	if height < 3 {
+		height = 3
+	}
+	h.width = w
+	h.height = height
+}
+
+func (h *HomeScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{
+		{Key: "enter", Help: "select packages"},
+	}
+}
+
 func (h *HomeScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			return h, func() tea.Msg {
@@ -30,36 +50,52 @@ func (h *HomeScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	return h, nil
 }
 
-func (h *HomeScreen) View() string {
+func (h *HomeScreen) View() tea.View {
 	var b strings.Builder
-
-	b.WriteString(Styles.Title.Render("  dotfiles installer"))
-	b.WriteString("\n\n")
-
-	b.WriteString(fmt.Sprintf("  OS:         %s (%s)\n", h.state.Platform.OS, h.state.Platform.PkgManager))
-	if h.state.Platform.IsWSL {
-		b.WriteString("  WSL:        yes\n")
-	}
-	b.WriteString(fmt.Sprintf("  Dotfiles:   %s\n", h.state.DotfilesDir))
 	b.WriteString("\n")
 
-	b.WriteString(Styles.Title.Render("  Packages"))
-	b.WriteString("\n\n")
+	installed := 0
+	for _, name := range h.state.Config.PackageNames() {
+		if h.state.StowStatus[name] {
+			installed++
+		}
+	}
+	total := len(h.state.Config.PackageNames())
+	countLine := Styles.Dimmed.Render(fmt.Sprintf("  %d packages · %d installed", total, installed))
+	b.WriteString(countLine + "\n\n")
 
 	for _, name := range h.state.Config.PackageNames() {
 		pkg := h.state.Config.Packages[name]
-		var status string
+		nameStr := fmt.Sprintf("  %-14s", name)
+
+		var pill string
 		if h.state.StowStatus[name] {
-			status = Icons.Success + " installed"
+			pill = Styles.PillSuccess.Render("installed")
 		} else {
-			status = Icons.Warning + " not installed"
+			pill = Styles.PillWarning.Render("not installed")
 		}
-		b.WriteString(fmt.Sprintf("  %-12s %s  %s\n", name, status, Styles.StatusBar.Render(pkg.Description)))
+
+		desc := Styles.Dimmed.Render(pkg.Description)
+		nameW := lipgloss.Width(nameStr)
+		pillW := lipgloss.Width(pill)
+		descW := lipgloss.Width(desc)
+		available := h.width - nameW - pillW - 2
+		if available < 0 {
+			available = 0
+		}
+		pad := available - descW
+		if pad < 0 {
+			pad = 0
+		}
+
+		row := lipgloss.JoinHorizontal(lipgloss.Top,
+			nameStr,
+			desc+strings.Repeat(" ", pad),
+			" ",
+			pill,
+		)
+		b.WriteString(row + "\n")
 	}
 
-	b.WriteString("\n")
-	b.WriteString(Styles.StatusBar.Render("  enter: select packages  q: quit  ?: help  "))
-	b.WriteString("\n")
-
-	return b.String()
+	return tea.NewView(b.String())
 }

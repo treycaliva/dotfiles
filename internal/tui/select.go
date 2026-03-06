@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
 )
 
 type SelectScreen struct {
@@ -13,6 +14,8 @@ type SelectScreen struct {
 	checked   map[int]bool
 	unstowing bool
 	packages  []string
+	width     int
+	height    int
 }
 
 func NewSelectScreen(state *AppState) *SelectScreen {
@@ -25,9 +28,30 @@ func NewSelectScreen(state *AppState) *SelectScreen {
 
 func (s *SelectScreen) Init() tea.Cmd { return nil }
 
+func (s *SelectScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	s.width = w
+	s.height = h
+}
+
+func (s *SelectScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{
+		{Key: "j/k", Help: "move"},
+		{Key: "space", Help: "toggle"},
+		{Key: "enter", Help: "confirm"},
+		{Key: "u", Help: "unstow mode"},
+		{Key: "esc", Help: "back"},
+	}
+}
+
 func (s *SelectScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":
 			return s, func() tea.Msg { return NavigateMsg{Screen: ScreenHome} }
@@ -39,7 +63,7 @@ func (s *SelectScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 			if s.cursor < len(s.packages)-1 {
 				s.cursor++
 			}
-		case "tab", " ":
+		case "tab", " ", "space":
 			s.checked[s.cursor] = !s.checked[s.cursor]
 		case "m":
 			s.applyProfile("minimal")
@@ -103,47 +127,60 @@ func (s *SelectScreen) applyProfile(name string) {
 	}
 }
 
-func (s *SelectScreen) View() string {
+func (s *SelectScreen) View() tea.View {
 	var b strings.Builder
-
-	mode := "Install"
-	if s.unstowing {
-		mode = "Unstow"
-	}
-	b.WriteString(Styles.Title.Render(fmt.Sprintf("  Select Packages (%s mode)", mode)))
-	b.WriteString("\n\n")
+	b.WriteString("\n")
 
 	for i, name := range s.packages {
-		cursor := "  "
-		if s.cursor == i {
-			cursor = Styles.Selected.Render("> ")
-		}
+		isCursor := s.cursor == i
 
-		check := "[ ]"
+		var checked string
 		if s.checked[i] {
-			check = Styles.Selected.Render("[x]")
-		}
-
-		var status string
-		if s.state.StowStatus[name] {
-			status = Icons.Success
+			checked = Styles.Selected.Render("● ")
+		} else if isCursor {
+			// Use white so ○ is visible against the BrightBlack highlight background
+			checked = lipgloss.NewStyle().Foreground(Theme.White).Render("○ ")
 		} else {
-			status = Icons.Warning
+			checked = Styles.Dimmed.Render("○ ")
 		}
 
-		desc := s.state.Config.Packages[name].Description
-		b.WriteString(fmt.Sprintf("%s%s %s %-12s %s\n", cursor, check, status, name, desc))
+		var statusIcon string
+		if s.state.StowStatus[name] {
+			statusIcon = Icons.Success + " "
+		} else {
+			statusIcon = Icons.Warning + " "
+		}
+
+		var desc string
+		if isCursor {
+			desc = lipgloss.NewStyle().Foreground(Theme.White).Render(s.state.Config.Packages[name].Description)
+		} else {
+			desc = Styles.Dimmed.Render(s.state.Config.Packages[name].Description)
+		}
+		content := fmt.Sprintf("  %s%s%-14s %s", checked, statusIcon, name, desc)
+
+		if isCursor {
+			contentW := lipgloss.Width(content)
+			pad := s.width - contentW
+			if pad < 0 {
+				pad = 0
+			}
+			padded := content + strings.Repeat(" ", pad)
+			b.WriteString(Styles.HighlightRow.Render(padded) + "\n")
+		} else {
+			b.WriteString(content + "\n")
+		}
 	}
 
 	b.WriteString("\n")
-	b.WriteString("  Profiles: ")
-	b.WriteString(Styles.Selected.Render("m") + "=minimal  ")
-	b.WriteString(Styles.Selected.Render("s") + "=server  ")
-	b.WriteString(Styles.Selected.Render("f") + "=full  ")
-	b.WriteString(Styles.Selected.Render("a") + "=toggle all\n")
-	b.WriteString("\n")
-	b.WriteString(Styles.StatusBar.Render("  j/k: move  space: toggle  u: unstow mode  enter: confirm  esc: back  "))
-	b.WriteString("\n")
 
-	return b.String()
+	// Profile shortcuts
+	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Cyan)
+	b.WriteString("  Profiles:  ")
+	b.WriteString(keyStyle.Render("[m]") + " minimal   ")
+	b.WriteString(keyStyle.Render("[s]") + " server   ")
+	b.WriteString(keyStyle.Render("[f]") + " full   ")
+	b.WriteString(keyStyle.Render("[a]") + " toggle all\n")
+
+	return tea.NewView(b.String())
 }

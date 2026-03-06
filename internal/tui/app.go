@@ -1,13 +1,32 @@
 package tui
 
 import (
+	"strings"
+
 	"github.com/treycaliva/dotfiles/internal/config"
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 
-	tea "github.com/charmbracelet/bubbletea"
+	v1tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// KeyBinding pairs a key name with a short description for the status bar.
+type KeyBinding struct {
+	Key  string
+	Help string
+}
+
+// wrapV1Cmd converts a bubbles v1 Cmd (which returns a v1 Msg / interface{})
+// into a bubbletea v2 Cmd so that bubbles components remain usable while we
+// run on the v2 runtime.
+func wrapV1Cmd(cmd v1tea.Cmd) tea.Cmd {
+	if cmd == nil {
+		return nil
+	}
+	return func() tea.Msg { return cmd() }
+}
 
 type Screen int
 
@@ -20,11 +39,18 @@ const (
 	ScreenSummary
 )
 
+const (
+	chromeHeaderLines = 3
+	chromeFooterLines = 1
+)
+
 // ScreenModel is implemented by each screen.
 type ScreenModel interface {
 	Init() tea.Cmd
 	Update(tea.Msg) (ScreenModel, tea.Cmd)
-	View() string
+	View() tea.View
+	SetSize(w, h int)
+	StatusBar() []KeyBinding
 }
 
 // AppState holds shared state passed between screens.
@@ -73,6 +99,8 @@ type App struct {
 	width    int
 	height   int
 	showHelp bool
+	contentW int
+	contentH int
 }
 
 func NewApp(cfg *config.Config, plat platform.Info, dotfilesDir, homeDir string) App {
@@ -99,7 +127,7 @@ func (a App) Init() tea.Cmd {
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return a, tea.Quit
@@ -122,6 +150,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
+		a.contentW = msg.Width
+		a.contentH = msg.Height - chromeHeaderLines - chromeFooterLines
+		if a.contentH < 3 {
+			a.contentH = 3
+		}
+		a.current.SetSize(a.contentW, a.contentH)
 	case NavigateMsg:
 		return a.navigate(msg)
 	}
@@ -131,13 +165,73 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, cmd
 }
 
-func (a App) View() string {
-	view := a.current.View()
+func (a App) renderHeader() string {
+	title := " " + GradientTitle(" dotfiles installer")
+	var platform string
+	if a.state.Platform.IsWSL {
+		platform = Styles.Dimmed.Render("WSL · " + a.state.Platform.PkgManager)
+	} else {
+		platform = Styles.Dimmed.Render(a.state.Platform.OS + " · " + a.state.Platform.PkgManager)
+	}
+	titleW := lipgloss.Width(title)
+	platW := lipgloss.Width(platform)
+	gap := a.width - titleW - platW - 1
+	if gap < 0 {
+		gap = 0
+	}
+	line1 := title + strings.Repeat(" ", gap) + platform
+	line2 := Styles.Breadcrumb.Render("  ▸ " + screenName(a.screen))
+	line3 := Styles.Dimmed.Render(strings.Repeat("─", a.width))
+	return lipgloss.JoinVertical(lipgloss.Left, line1, line2, line3)
+}
+
+func (a App) renderFooter() string {
+	bindings := a.current.StatusBar()
+	bindings = append(bindings,
+		KeyBinding{Key: "?", Help: "help"},
+		KeyBinding{Key: "q", Help: "quit"},
+	)
+	var parts []string
+	for _, b := range bindings {
+		key := lipgloss.NewStyle().Bold(true).Foreground(Theme.Yellow).Render(b.Key)
+		parts = append(parts, key+":"+b.Help)
+	}
+	content := "  " + strings.Join(parts, "  ") + "  "
+	return lipgloss.NewStyle().
+		Background(Theme.Black).
+		Foreground(Theme.White).
+		Width(a.width).
+		Render(content)
+}
+
+func screenName(s Screen) string {
+	switch s {
+	case ScreenHome:
+		return "Home"
+	case ScreenSelect:
+		return "Select Packages"
+	case ScreenPreview:
+		return "Preview"
+	case ScreenDiff:
+		return "Diff"
+	case ScreenProgress:
+		return "Installing"
+	case ScreenSummary:
+		return "Summary"
+	default:
+		return ""
+	}
+}
+
+func (a App) View() tea.View {
 	if a.showHelp {
 		help := Styles.Border.Padding(1, 2).Render(helpText())
-		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, help)
+		return tea.NewView(lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, help))
 	}
-	return view
+	header := a.renderHeader()
+	footer := a.renderFooter()
+	content := a.current.View().Content
+	return tea.NewView(lipgloss.JoinVertical(lipgloss.Left, header, content, footer))
 }
 
 func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
@@ -147,17 +241,23 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 	case ScreenHome:
 		a.state.RefreshStowStatus()
 		a.current = NewHomeScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenSelect:
 		a.current = NewSelectScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenPreview:
 		a.current = NewPreviewScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenDiff:
 		a.current = NewDiffScreen(a.state, a.state.DiffPkg, a.state.DiffFile)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenProgress:
 		a.current = NewProgressScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenSummary:
 		a.state.RefreshStowStatus()
 		a.current = NewSummaryScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	}
 
 	return a, a.current.Init()

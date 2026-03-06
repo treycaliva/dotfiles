@@ -3,11 +3,15 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/lipgloss"
+	v1tea "github.com/charmbracelet/bubbletea"
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // previewItem holds analysis results for a single package.
@@ -28,23 +32,55 @@ type PreviewScreen struct {
 	items   []previewItem
 	cursor  int
 	loading bool
+	spinner spinner.Model
+	width   int
+	height  int
+	flash   string
 }
 
+// clearFlashMsg clears the flash message after a short delay.
+type clearFlashMsg struct{}
+
 func NewPreviewScreen(state *AppState) *PreviewScreen {
+	s := spinner.New()
+	s.Spinner = spinner.MiniDot
+	s.Style = lipgloss.NewStyle().Foreground(Theme.Cyan)
 	return &PreviewScreen{
 		state:   state,
 		loading: true,
+		spinner: s,
+	}
+}
+
+func (p *PreviewScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	p.width = w
+	p.height = h
+}
+
+func (p *PreviewScreen) StatusBar() []KeyBinding {
+	if p.loading {
+		return nil
+	}
+	return []KeyBinding{
+		{Key: "j/k", Help: "move"},
+		{Key: "d", Help: "view diff"},
+		{Key: "enter", Help: "confirm"},
+		{Key: "esc", Help: "back"},
 	}
 }
 
 func (p *PreviewScreen) Init() tea.Cmd {
 	state := p.state
-	return func() tea.Msg {
+	analyzeCmd := func() tea.Msg {
 		var items []previewItem
 		for _, pkg := range state.Selected {
 			item := previewItem{pkg: pkg}
-
-			// Check dependencies
 			cfg := state.Config.Packages[pkg]
 			if len(cfg.Deps) > 0 {
 				statuses := platform.CheckDeps(cfg.Deps)
@@ -54,17 +90,15 @@ func (p *PreviewScreen) Init() tea.Cmd {
 					}
 				}
 			}
-
-			// Run stow dry-run to detect conflicts (only for install, not unstow)
 			if !state.Unstowing {
 				conflicts, _, _ := stow.DryRun(state.DotfilesDir, state.HomeDir, pkg)
 				item.conflicts = conflicts
 			}
-
 			items = append(items, item)
 		}
 		return previewReadyMsg{items: items}
 	}
+	return tea.Batch(wrapV1Cmd(p.spinner.Tick), analyzeCmd)
 }
 
 func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
@@ -80,7 +114,7 @@ func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 			}
 		}
 		return p, nil
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if p.loading {
 			return p, nil
 		}
@@ -103,69 +137,88 @@ func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 					p.state.DiffFile = item.conflicts[0]
 					return p, func() tea.Msg { return NavigateMsg{Screen: ScreenDiff} }
 				}
+				p.flash = fmt.Sprintf("No conflicts for %s", item.pkg)
+				return p, tea.Tick(time.Second*2, func(time.Time) tea.Msg {
+					return clearFlashMsg{}
+				})
 			}
 		case "enter":
 			return p, func() tea.Msg { return NavigateMsg{Screen: ScreenProgress} }
 		}
+	case clearFlashMsg:
+		p.flash = ""
+		return p, nil
+	case spinner.TickMsg:
+		if p.loading {
+			var v1cmd v1tea.Cmd
+			p.spinner, v1cmd = p.spinner.Update(msg)
+			return p, wrapV1Cmd(v1cmd)
+		}
+		return p, nil
 	}
 	return p, nil
 }
 
-func (p *PreviewScreen) View() string {
+func (p *PreviewScreen) View() tea.View {
 	var b strings.Builder
-
-	action := "Install"
-	if p.state.Unstowing {
-		action = "Unstow"
-	}
-	b.WriteString(Styles.Title.Render(fmt.Sprintf("  Preview (%s)", action)))
-	b.WriteString("\n\n")
+	b.WriteString("\n")
 
 	if p.loading {
-		b.WriteString(fmt.Sprintf("  %s Analyzing packages...\n", Icons.Pending))
-		return b.String()
+		b.WriteString(fmt.Sprintf("  %s Analyzing packages...\n", p.spinner.View()))
+		return tea.NewView(b.String())
 	}
 
 	for i, item := range p.items {
+		hasIssues := len(item.missingDeps) > 0 || len(item.conflicts) > 0
+
 		cursor := "  "
 		if p.cursor == i {
-			cursor = Styles.Selected.Render("> ")
+			cursor = Styles.Selected.Render("▸ ")
 		}
 
-		status := Icons.Success
-		if len(item.missingDeps) > 0 || len(item.conflicts) > 0 {
-			status = Icons.Warning
+		var cardStyle lipgloss.Style
+		var statusIcon string
+		if len(item.conflicts) > 0 {
+			cardStyle = Styles.AccentBorderError
+			statusIcon = Icons.Failure
+		} else if hasIssues {
+			cardStyle = Styles.AccentBorderWarning
+			statusIcon = Icons.Warning
+		} else {
+			cardStyle = Styles.AccentBorderSuccess
+			statusIcon = Icons.Success
 		}
 
-		b.WriteString(fmt.Sprintf("%s%s %s\n", cursor, status, item.pkg))
+		var cardLines strings.Builder
+		cardLines.WriteString(fmt.Sprintf("%s%s %s\n", cursor, statusIcon, item.pkg))
 
-		// Show missing deps
 		if len(item.missingDeps) > 0 {
 			deps := make([]string, len(item.missingDeps))
 			for j, d := range item.missingDeps {
 				deps[j] = d.Binary
 			}
-			b.WriteString(fmt.Sprintf("      deps to install: %s\n",
+			cardLines.WriteString(fmt.Sprintf("  deps to install: %s\n",
 				Styles.Warning.Render(strings.Join(deps, ", "))))
 		}
 
-		// Show conflicts
 		if len(item.conflicts) > 0 {
-			b.WriteString(fmt.Sprintf("      conflicts: %s\n",
-				Styles.Error.Render(fmt.Sprintf("%d file(s)", len(item.conflicts)))))
+			cardLines.WriteString(fmt.Sprintf("  %s\n",
+				Styles.Error.Render(fmt.Sprintf("%d conflict(s)", len(item.conflicts)))))
 			for _, c := range item.conflicts {
-				b.WriteString(fmt.Sprintf("        %s %s\n", Styles.Error.Render("-"), c))
+				cardLines.WriteString(fmt.Sprintf("  ┆ %s\n", Styles.Error.Render(c)))
 			}
 		}
 
-		if len(item.missingDeps) == 0 && len(item.conflicts) == 0 {
-			b.WriteString("      " + Styles.Success.Render("ready") + "\n")
+		if !hasIssues {
+			cardLines.WriteString("  " + Styles.Success.Render("ready") + "\n")
 		}
+
+		b.WriteString(cardStyle.Render(cardLines.String()) + "\n")
 	}
 
-	b.WriteString("\n")
-	b.WriteString(Styles.StatusBar.Render("  j/k: move  d: diff  enter: confirm  esc: back  "))
-	b.WriteString("\n")
+	if p.flash != "" {
+		b.WriteString("\n  " + Styles.Dimmed.Render(p.flash) + "\n")
+	}
 
-	return b.String()
+	return tea.NewView(b.String())
 }
