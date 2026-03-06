@@ -142,9 +142,5 @@ func (d *DiffScreen) View() tea.View {
 	b.WriteString(d.viewport.View())
 	b.WriteString("\n")
 
-	info := fmt.Sprintf(" %3.f%% ", d.viewport.ScrollPercent()*100)
-	b.WriteString(Styles.StatusBar.Render(fmt.Sprintf("  q/esc: back  %s", info)))
-	b.WriteString("\n")
-
 	return tea.NewView(b.String())
 }

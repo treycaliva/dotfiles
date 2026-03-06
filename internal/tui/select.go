@@ -158,9 +158,5 @@ func (s *SelectScreen) View() tea.View {
 	b.WriteString(Styles.Selected.Render("s") + "=server  ")
 	b.WriteString(Styles.Selected.Render("f") + "=full  ")
 	b.WriteString(Styles.Selected.Render("a") + "=toggle all\n")
-	b.WriteString("\n")
-	b.WriteString(Styles.StatusBar.Render("  j/k: move  space: toggle  u: unstow mode  enter: confirm  esc: back  "))
-	b.WriteString("\n")
-
 	return tea.NewView(b.String())
 }

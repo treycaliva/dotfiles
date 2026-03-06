@@ -330,13 +330,5 @@ func (p *ProgressScreen) View() tea.View {
 		b.WriteString("\n")
 	}
 
-	b.WriteString("\n")
-	if p.done {
-		b.WriteString(Styles.StatusBar.Render("  enter: view summary  "))
-	} else {
-		b.WriteString(Styles.StatusBar.Render("  processing...  "))
-	}
-	b.WriteString("\n")
-
 	return tea.NewView(b.String())
 }

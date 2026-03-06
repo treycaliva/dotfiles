@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strings"
+
 	"github.com/treycaliva/dotfiles/internal/config"
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
@@ -9,6 +11,12 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// KeyBinding pairs a key name with a short description for the status bar.
+type KeyBinding struct {
+	Key  string
+	Help string
+}
 
 // wrapV1Cmd converts a bubbles v1 Cmd (which returns a v1 Msg / interface{})
 // into a bubbletea v2 Cmd so that bubbles components remain usable while we
@@ -157,16 +165,73 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, cmd
 }
 
+func (a App) renderHeader() string {
+	title := " " + GradientTitle(" dotfiles installer")
+	var platform string
+	if a.state.Platform.IsWSL {
+		platform = Styles.Dimmed.Render("WSL · " + a.state.Platform.PkgManager)
+	} else {
+		platform = Styles.Dimmed.Render(a.state.Platform.OS + " · " + a.state.Platform.PkgManager)
+	}
+	titleW := lipgloss.Width(title)
+	platW := lipgloss.Width(platform)
+	gap := a.width - titleW - platW - 1
+	if gap < 0 {
+		gap = 0
+	}
+	line1 := title + strings.Repeat(" ", gap) + platform
+	line2 := Styles.Breadcrumb.Render("  ▸ " + screenName(a.screen))
+	line3 := Styles.Dimmed.Render(strings.Repeat("─", a.width))
+	return lipgloss.JoinVertical(lipgloss.Left, line1, line2, line3)
+}
+
+func (a App) renderFooter() string {
+	bindings := a.current.StatusBar()
+	bindings = append(bindings,
+		KeyBinding{Key: "?", Help: "help"},
+		KeyBinding{Key: "q", Help: "quit"},
+	)
+	var parts []string
+	for _, b := range bindings {
+		key := lipgloss.NewStyle().Bold(true).Foreground(Theme.Yellow).Render(b.Key)
+		parts = append(parts, key+":"+b.Help)
+	}
+	content := "  " + strings.Join(parts, "  ") + "  "
+	return lipgloss.NewStyle().
+		Background(Theme.Black).
+		Foreground(Theme.White).
+		Width(a.width).
+		Render(content)
+}
+
+func screenName(s Screen) string {
+	switch s {
+	case ScreenHome:
+		return "Home"
+	case ScreenSelect:
+		return "Select Packages"
+	case ScreenPreview:
+		return "Preview"
+	case ScreenDiff:
+		return "Diff"
+	case ScreenProgress:
+		return "Installing"
+	case ScreenSummary:
+		return "Summary"
+	default:
+		return ""
+	}
+}
+
 func (a App) View() tea.View {
-	var view tea.View
 	if a.showHelp {
 		help := Styles.Border.Padding(1, 2).Render(helpText())
-		view = tea.NewView(lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, help))
-	} else {
-		view = a.current.View()
+		return tea.NewView(lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, help))
 	}
-	view.AltScreen = true
-	return view
+	header := a.renderHeader()
+	footer := a.renderFooter()
+	content := a.current.View().Content
+	return tea.NewView(lipgloss.JoinVertical(lipgloss.Left, header, content, footer))
 }
 
 func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {

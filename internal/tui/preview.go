@@ -180,9 +180,5 @@ func (p *PreviewScreen) View() tea.View {
 		}
 	}
 
-	b.WriteString("\n")
-	b.WriteString(Styles.StatusBar.Render("  j/k: move  d: diff  enter: confirm  esc: back  "))
-	b.WriteString("\n")
-
 	return tea.NewView(b.String())
 }

@@ -74,9 +74,5 @@ func (h *HomeScreen) View() tea.View {
 		b.WriteString(fmt.Sprintf("  %-12s %s  %s\n", name, status, Styles.StatusBar.Render(pkg.Description)))
 	}
 
-	b.WriteString("\n")
-	b.WriteString(Styles.StatusBar.Render("  enter: select packages  q: quit  ?: help  "))
-	b.WriteString("\n")
-
 	return tea.NewView(b.String())
 }

@@ -81,9 +81,5 @@ func (s *SummaryScreen) View() tea.View {
 		}
 	}
 
-	b.WriteString("\n")
-	b.WriteString(Styles.StatusBar.Render("  q: quit  r: start over  "))
-	b.WriteString("\n")
-
 	return tea.NewView(b.String())
 }
