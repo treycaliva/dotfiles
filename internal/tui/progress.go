@@ -48,6 +48,8 @@ type ProgressScreen struct {
 	logView viewport.Model
 	allLogs []string
 	ready   bool
+	width   int
+	height  int
 }
 
 func NewProgressScreen(state *AppState) *ProgressScreen {
@@ -69,6 +71,21 @@ func NewProgressScreen(state *AppState) *ProgressScreen {
 		items:   items,
 		spinner: s,
 	}
+}
+
+func (p *ProgressScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	p.width = w
+	p.height = h
+}
+
+func (p *ProgressScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{}
 }
 
 func (p *ProgressScreen) Init() tea.Cmd {

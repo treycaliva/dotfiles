@@ -13,6 +13,8 @@ type SelectScreen struct {
 	checked   map[int]bool
 	unstowing bool
 	packages  []string
+	width     int
+	height    int
 }
 
 func NewSelectScreen(state *AppState) *SelectScreen {
@@ -24,6 +26,21 @@ func NewSelectScreen(state *AppState) *SelectScreen {
 }
 
 func (s *SelectScreen) Init() tea.Cmd { return nil }
+
+func (s *SelectScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	s.width = w
+	s.height = h
+}
+
+func (s *SelectScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{}
+}
 
 func (s *SelectScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {

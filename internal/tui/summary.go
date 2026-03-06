@@ -8,7 +8,9 @@ import (
 )
 
 type SummaryScreen struct {
-	state *AppState
+	state  *AppState
+	width  int
+	height int
 }
 
 func NewSummaryScreen(state *AppState) *SummaryScreen {
@@ -16,6 +18,21 @@ func NewSummaryScreen(state *AppState) *SummaryScreen {
 }
 
 func (s *SummaryScreen) Init() tea.Cmd { return nil }
+
+func (s *SummaryScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	s.width = w
+	s.height = h
+}
+
+func (s *SummaryScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{}
+}
 
 func (s *SummaryScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {

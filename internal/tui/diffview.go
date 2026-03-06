@@ -23,6 +23,8 @@ type DiffScreen struct {
 	pkg      string
 	file     string
 	ready    bool
+	width    int
+	height   int
 }
 
 func NewDiffScreen(state *AppState, pkg, file string) *DiffScreen {
@@ -31,6 +33,21 @@ func NewDiffScreen(state *AppState, pkg, file string) *DiffScreen {
 		pkg:   pkg,
 		file:  file,
 	}
+}
+
+func (d *DiffScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	d.width = w
+	d.height = h
+}
+
+func (d *DiffScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{}
 }
 
 func (d *DiffScreen) Init() tea.Cmd {

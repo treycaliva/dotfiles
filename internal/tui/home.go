@@ -8,7 +8,9 @@ import (
 )
 
 type HomeScreen struct {
-	state *AppState
+	state  *AppState
+	width  int
+	height int
 }
 
 func NewHomeScreen(state *AppState) *HomeScreen {
@@ -16,6 +18,21 @@ func NewHomeScreen(state *AppState) *HomeScreen {
 }
 
 func (h *HomeScreen) Init() tea.Cmd { return nil }
+
+func (h *HomeScreen) SetSize(w, height int) {
+	if w < 10 {
+		w = 10
+	}
+	if height < 3 {
+		height = 3
+	}
+	h.width = w
+	h.height = height
+}
+
+func (h *HomeScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{}
+}
 
 func (h *HomeScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {

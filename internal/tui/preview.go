@@ -28,6 +28,8 @@ type PreviewScreen struct {
 	items   []previewItem
 	cursor  int
 	loading bool
+	width   int
+	height  int
 }
 
 func NewPreviewScreen(state *AppState) *PreviewScreen {
@@ -35,6 +37,21 @@ func NewPreviewScreen(state *AppState) *PreviewScreen {
 		state:   state,
 		loading: true,
 	}
+}
+
+func (p *PreviewScreen) SetSize(w, h int) {
+	if w < 10 {
+		w = 10
+	}
+	if h < 3 {
+		h = 3
+	}
+	p.width = w
+	p.height = h
+}
+
+func (p *PreviewScreen) StatusBar() []KeyBinding {
+	return []KeyBinding{}
 }
 
 func (p *PreviewScreen) Init() tea.Cmd {

@@ -31,11 +31,18 @@ const (
 	ScreenSummary
 )
 
+const (
+	chromeHeaderLines = 3
+	chromeFooterLines = 1
+)
+
 // ScreenModel is implemented by each screen.
 type ScreenModel interface {
 	Init() tea.Cmd
 	Update(tea.Msg) (ScreenModel, tea.Cmd)
 	View() tea.View
+	SetSize(w, h int)
+	StatusBar() []KeyBinding
 }
 
 // AppState holds shared state passed between screens.
@@ -84,6 +91,8 @@ type App struct {
 	width    int
 	height   int
 	showHelp bool
+	contentW int
+	contentH int
 }
 
 func NewApp(cfg *config.Config, plat platform.Info, dotfilesDir, homeDir string) App {
@@ -133,6 +142,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
+		a.contentW = msg.Width
+		a.contentH = msg.Height - chromeHeaderLines - chromeFooterLines
+		if a.contentH < 3 {
+			a.contentH = 3
+		}
+		a.current.SetSize(a.contentW, a.contentH)
 	case NavigateMsg:
 		return a.navigate(msg)
 	}
@@ -161,17 +176,23 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 	case ScreenHome:
 		a.state.RefreshStowStatus()
 		a.current = NewHomeScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenSelect:
 		a.current = NewSelectScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenPreview:
 		a.current = NewPreviewScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenDiff:
 		a.current = NewDiffScreen(a.state, a.state.DiffPkg, a.state.DiffFile)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenProgress:
 		a.current = NewProgressScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenSummary:
 		a.state.RefreshStowStatus()
 		a.current = NewSummaryScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	}
 
 	return a, a.current.Init()
