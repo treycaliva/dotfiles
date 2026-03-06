@@ -334,11 +334,14 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		if p.done && msg.String() == "enter" {
 			return p, func() tea.Msg { return NavigateMsg{Screen: ScreenSummary} }
 		}
-		// Allow scrolling the log viewport
+		// Manual scrolling since v1 viewport can't handle v2 KeyPressMsg
 		if p.ready {
-			var v1cmd v1tea.Cmd
-			p.logView, v1cmd = p.logView.Update(msg)
-			return p, wrapV1Cmd(v1cmd)
+			switch msg.String() {
+			case "down", "j":
+				p.logView.ScrollDown(1)
+			case "up", "k":
+				p.logView.ScrollUp(1)
+			}
 		}
 	}
 

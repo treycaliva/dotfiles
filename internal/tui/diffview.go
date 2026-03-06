@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
-	v1tea "github.com/charmbracelet/bubbletea"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/treycaliva/dotfiles/internal/stow"
@@ -94,14 +93,25 @@ func (d *DiffScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		switch msg.String() {
 		case "esc", "q":
 			return d, func() tea.Msg { return NavigateMsg{Screen: ScreenPreview} }
+		case "down", "j":
+			if d.ready {
+				d.viewport.ScrollDown(1)
+			}
+		case "up", "k":
+			if d.ready {
+				d.viewport.ScrollUp(1)
+			}
+		case "d":
+			if d.ready {
+				d.viewport.HalfPageDown()
+			}
+		case "u":
+			if d.ready {
+				d.viewport.HalfPageUp()
+			}
 		}
 	}
 
-	if d.ready {
-		var v1cmd v1tea.Cmd
-		d.viewport, v1cmd = d.viewport.Update(msg)
-		return d, wrapV1Cmd(v1cmd)
-	}
 	return d, nil
 }
 
