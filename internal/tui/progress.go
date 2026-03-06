@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	v1tea "github.com/charmbracelet/bubbletea"
@@ -27,6 +28,13 @@ const (
 type pkgProgress struct {
 	name   string
 	status pkgStatus
+	phase  string
+}
+
+// installPhaseMsg is sent before a major operation to give live phase feedback.
+type installPhaseMsg struct {
+	pkg   string
+	phase string
 }
 
 // installStepMsg is sent after each package finishes processing.
@@ -45,6 +53,7 @@ type ProgressScreen struct {
 	current int
 	done    bool
 	spinner spinner.Model
+	prog    progress.Model
 	logView viewport.Model
 	allLogs []string
 	ready   bool
@@ -62,6 +71,11 @@ func NewProgressScreen(state *AppState) *ProgressScreen {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(Theme.Yellow)
 
+	prog := progress.New(
+		progress.WithScaledGradient("#FBB829", "#0AAEB3"),
+		progress.WithWidth(40),
+	)
+
 	if len(items) > 0 {
 		items[0].status = statusActive
 	}
@@ -70,6 +84,7 @@ func NewProgressScreen(state *AppState) *ProgressScreen {
 		state:   state,
 		items:   items,
 		spinner: s,
+		prog:    prog,
 	}
 }
 
@@ -82,10 +97,22 @@ func (p *ProgressScreen) SetSize(w, h int) {
 	}
 	p.width = w
 	p.height = h
+	if p.ready {
+		p.logView.Width = w - 4
+		headerHeight := 2 + len(p.items) + 1
+		logH := h - headerHeight - 2
+		if logH < 3 {
+			logH = 3
+		}
+		p.logView.Height = logH
+	}
 }
 
 func (p *ProgressScreen) StatusBar() []KeyBinding {
-	return []KeyBinding{}
+	if p.done {
+		return []KeyBinding{{Key: "enter", Help: "view summary"}}
+	}
+	return []KeyBinding{{Key: "j/k", Help: "scroll log"}}
 }
 
 func (p *ProgressScreen) Init() tea.Cmd {
@@ -218,6 +245,20 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		}
 		return p, nil
 
+	case progress.FrameMsg:
+		m, v1cmd := p.prog.Update(msg)
+		p.prog = m.(progress.Model)
+		return p, wrapV1Cmd(v1cmd)
+
+	case installPhaseMsg:
+		for i := range p.items {
+			if p.items[i].name == msg.pkg {
+				p.items[i].phase = msg.phase
+				break
+			}
+		}
+		return p, nil
+
 	case installStepMsg:
 		// Update the item status
 		for i := range p.items {
@@ -227,6 +268,7 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 				} else {
 					p.items[i].status = statusDone
 				}
+				p.items[i].phase = ""
 				break
 			}
 		}
@@ -243,9 +285,18 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 			}
 		}
 
+		// Update progress bar
+		doneCount := 0
+		for _, item := range p.items {
+			if item.status == statusDone || item.status == statusFailed {
+				doneCount++
+			}
+		}
+		v1progCmd := p.prog.SetPercent(float64(doneCount) / float64(len(p.items)))
+
 		if msg.done {
 			p.done = true
-			return p, nil
+			return p, wrapV1Cmd(v1progCmd)
 		}
 
 		// Advance to the next package
@@ -253,10 +304,10 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		if p.current < len(p.items) {
 			p.items[p.current].status = statusActive
 		}
-		return p, p.processNext()
+		return p, tea.Batch(wrapV1Cmd(v1progCmd), p.processNext())
 
 	case tea.WindowSizeMsg:
-		headerHeight := 3 + len(p.items) + 1 // title + items + blank
+		headerHeight := 2 + len(p.items) + 1 // progress bar + items + blank
 		footerHeight := 3                     // blank + border padding + status bar
 		height := msg.Height - headerHeight - footerHeight
 		if height < 3 {
@@ -296,20 +347,33 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 
 func (p *ProgressScreen) View() tea.View {
 	var b strings.Builder
+	b.WriteString("\n")
 
-	title := "Installing packages"
-	if p.state.Unstowing {
-		title = "Unstowing packages"
+	// Count completed
+	doneCount := 0
+	for _, item := range p.items {
+		if item.status == statusDone || item.status == statusFailed {
+			doneCount++
+		}
 	}
-	b.WriteString(Styles.Title.Render("  " + title))
-	b.WriteString("\n\n")
+	total := len(p.items)
 
-	// Per-package progress rows
+	// Progress bar + count
+	countStr := Styles.Dimmed.Render(fmt.Sprintf("%d of %d complete", doneCount, total))
+	progressLine := lipgloss.JoinHorizontal(lipgloss.Top,
+		"  ",
+		p.prog.View(),
+		"  ",
+		countStr,
+	)
+	b.WriteString(progressLine + "\n\n")
+
+	// Per-package rows
 	for _, item := range p.items {
 		var icon string
 		switch item.status {
 		case statusPending:
-			icon = "  "
+			icon = Styles.Dimmed.Render("  ")
 		case statusActive:
 			icon = p.spinner.View()
 		case statusDone:
@@ -317,17 +381,30 @@ func (p *ProgressScreen) View() tea.View {
 		case statusFailed:
 			icon = Icons.Failure
 		}
-		b.WriteString(fmt.Sprintf("  %s %s\n", icon, item.name))
+
+		row := fmt.Sprintf("  %s %-14s", icon, item.name)
+		if item.status == statusActive && item.phase != "" {
+			row += Styles.Dimmed.Render(item.phase + "...")
+		} else if item.status == statusPending {
+			row = Styles.Dimmed.Render(row + "pending")
+		}
+		b.WriteString(row + "\n")
 	}
 
 	b.WriteString("\n")
 
-	// Scrolling log viewport in a bordered box
+	// Scrolling log viewport
 	if p.ready {
-		logContent := p.logView.View()
-		bordered := Styles.Border.Render(logContent)
-		b.WriteString(bordered)
-		b.WriteString("\n")
+		viewW := p.width - 4
+		if viewW < 10 {
+			viewW = 10
+		}
+		bordered := Styles.Border.Width(viewW).Render(p.logView.View())
+		b.WriteString(bordered + "\n")
+	}
+
+	if p.done {
+		b.WriteString("\n" + Styles.Success.Render("  All done!") + "\n")
 	}
 
 	return tea.NewView(b.String())
