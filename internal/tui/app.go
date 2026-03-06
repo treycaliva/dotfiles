@@ -144,7 +144,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.showHelp = false
 				return a, nil
 			}
-			if a.screen != ScreenProgress && a.screen != ScreenDiff {
+			if a.screen != ScreenProgress && a.screen != ScreenDiff && a.screen != ScreenDirenvConfig {
 				return a, tea.Quit
 			}
 		}
