@@ -63,7 +63,7 @@ func (s *SelectScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 			if s.cursor < len(s.packages)-1 {
 				s.cursor++
 			}
-		case "tab", " ":
+		case "tab", " ", "space":
 			s.checked[s.cursor] = !s.checked[s.cursor]
 		case "m":
 			s.applyProfile("minimal")
@@ -174,23 +174,13 @@ func (s *SelectScreen) View() tea.View {
 
 	b.WriteString("\n")
 
-	// Profile pills
-	profiles := []struct{ key, label string }{
-		{"m", "minimal"}, {"s", "server"}, {"f", "full"},
-	}
-	pillStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(Theme.Cyan).
-		Foreground(Theme.Cyan).
-		Padding(0, 1)
-	var joinParts []string
-	for i, p := range profiles {
-		if i > 0 {
-			joinParts = append(joinParts, "   ")
-		}
-		joinParts = append(joinParts, pillStyle.Render(fmt.Sprintf("[%s] %s", p.key, p.label)))
-	}
-	b.WriteString("  " + lipgloss.JoinHorizontal(lipgloss.Top, joinParts...) + "\n")
+	// Profile shortcuts
+	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Cyan)
+	b.WriteString("  Profiles:  ")
+	b.WriteString(keyStyle.Render("[m]") + " minimal   ")
+	b.WriteString(keyStyle.Render("[s]") + " server   ")
+	b.WriteString(keyStyle.Render("[f]") + " full   ")
+	b.WriteString(keyStyle.Render("[a]") + " toggle all\n")
 
 	return tea.NewView(b.String())
 }
