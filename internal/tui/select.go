@@ -178,18 +178,19 @@ func (s *SelectScreen) View() tea.View {
 	profiles := []struct{ key, label string }{
 		{"m", "minimal"}, {"s", "server"}, {"f", "full"},
 	}
-	var pillParts []string
-	for _, p := range profiles {
-		pill := lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(Theme.Cyan).
-			Foreground(Theme.Cyan).
-			Padding(0, 1).
-			MarginRight(2).
-			Render(fmt.Sprintf("[%s] %s", p.key, p.label))
-		pillParts = append(pillParts, pill)
+	pillStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(Theme.Cyan).
+		Foreground(Theme.Cyan).
+		Padding(0, 1)
+	var joinParts []string
+	for i, p := range profiles {
+		if i > 0 {
+			joinParts = append(joinParts, "   ")
+		}
+		joinParts = append(joinParts, pillStyle.Render(fmt.Sprintf("[%s] %s", p.key, p.label)))
 	}
-	b.WriteString("  " + lipgloss.JoinHorizontal(lipgloss.Top, pillParts...) + "\n")
+	b.WriteString("  " + lipgloss.JoinHorizontal(lipgloss.Top, joinParts...) + "\n")
 
 	return tea.NewView(b.String())
 }
