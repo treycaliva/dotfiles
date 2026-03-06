@@ -7,7 +7,7 @@ import (
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // previewItem holds analysis results for a single package.
@@ -80,7 +80,7 @@ func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 			}
 		}
 		return p, nil
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if p.loading {
 			return p, nil
 		}
@@ -111,7 +111,7 @@ func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	return p, nil
 }
 
-func (p *PreviewScreen) View() string {
+func (p *PreviewScreen) View() tea.View {
 	var b strings.Builder
 
 	action := "Install"
@@ -123,7 +123,7 @@ func (p *PreviewScreen) View() string {
 
 	if p.loading {
 		b.WriteString(fmt.Sprintf("  %s Analyzing packages...\n", Icons.Pending))
-		return b.String()
+		return tea.NewView(b.String())
 	}
 
 	for i, item := range p.items {
@@ -167,5 +167,5 @@ func (p *PreviewScreen) View() string {
 	b.WriteString(Styles.StatusBar.Render("  j/k: move  d: diff  enter: confirm  esc: back  "))
 	b.WriteString("\n")
 
-	return b.String()
+	return tea.NewView(b.String())
 }

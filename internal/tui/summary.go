@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 type SummaryScreen struct {
@@ -19,7 +19,7 @@ func (s *SummaryScreen) Init() tea.Cmd { return nil }
 
 func (s *SummaryScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q":
 			return s, tea.Quit
@@ -30,7 +30,7 @@ func (s *SummaryScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	return s, nil
 }
 
-func (s *SummaryScreen) View() string {
+func (s *SummaryScreen) View() tea.View {
 	var b strings.Builder
 
 	b.WriteString(Styles.Title.Render("  Summary"))
@@ -68,5 +68,5 @@ func (s *SummaryScreen) View() string {
 	b.WriteString(Styles.StatusBar.Render("  q: quit  r: start over  "))
 	b.WriteString("\n")
 
-	return b.String()
+	return tea.NewView(b.String())
 }

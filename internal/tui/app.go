@@ -5,9 +5,20 @@ import (
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 
-	tea "github.com/charmbracelet/bubbletea"
+	v1tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// wrapV1Cmd converts a bubbles v1 Cmd (which returns a v1 Msg / interface{})
+// into a bubbletea v2 Cmd so that bubbles components remain usable while we
+// run on the v2 runtime.
+func wrapV1Cmd(cmd v1tea.Cmd) tea.Cmd {
+	if cmd == nil {
+		return nil
+	}
+	return func() tea.Msg { return cmd() }
+}
 
 type Screen int
 
@@ -24,7 +35,7 @@ const (
 type ScreenModel interface {
 	Init() tea.Cmd
 	Update(tea.Msg) (ScreenModel, tea.Cmd)
-	View() string
+	View() tea.View
 }
 
 // AppState holds shared state passed between screens.
@@ -99,7 +110,7 @@ func (a App) Init() tea.Cmd {
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return a, tea.Quit
@@ -131,12 +142,15 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, cmd
 }
 
-func (a App) View() string {
-	view := a.current.View()
+func (a App) View() tea.View {
+	var view tea.View
 	if a.showHelp {
 		help := Styles.Border.Padding(1, 2).Render(helpText())
-		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, help)
+		view = tea.NewView(lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, help))
+	} else {
+		view = a.current.View()
 	}
+	view.AltScreen = true
 	return view
 }
 

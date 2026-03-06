@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 type HomeScreen struct {
@@ -19,7 +19,7 @@ func (h *HomeScreen) Init() tea.Cmd { return nil }
 
 func (h *HomeScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			return h, func() tea.Msg {
@@ -30,7 +30,7 @@ func (h *HomeScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	return h, nil
 }
 
-func (h *HomeScreen) View() string {
+func (h *HomeScreen) View() tea.View {
 	var b strings.Builder
 
 	b.WriteString(Styles.Title.Render("  dotfiles installer"))
@@ -61,5 +61,5 @@ func (h *HomeScreen) View() string {
 	b.WriteString(Styles.StatusBar.Render("  enter: select packages  q: quit  ?: help  "))
 	b.WriteString("\n")
 
-	return b.String()
+	return tea.NewView(b.String())
 }

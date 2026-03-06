@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
+	v1tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/treycaliva/dotfiles/internal/stow"
 )
@@ -74,7 +75,7 @@ func (d *DiffScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 			d.viewport.SetContent(styled)
 		}
 		return d, nil
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc", "q":
 			return d, func() tea.Msg { return NavigateMsg{Screen: ScreenPreview} }
@@ -82,9 +83,9 @@ func (d *DiffScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	}
 
 	if d.ready {
-		var cmd tea.Cmd
-		d.viewport, cmd = d.viewport.Update(msg)
-		return d, cmd
+		var v1cmd v1tea.Cmd
+		d.viewport, v1cmd = d.viewport.Update(msg)
+		return d, wrapV1Cmd(v1cmd)
 	}
 	return d, nil
 }
@@ -109,7 +110,7 @@ func (d *DiffScreen) styleDiff(raw string) string {
 	return b.String()
 }
 
-func (d *DiffScreen) View() string {
+func (d *DiffScreen) View() tea.View {
 	var b strings.Builder
 
 	title := fmt.Sprintf("  Diff: %s — ~/%s", d.pkg, d.file)
@@ -118,7 +119,7 @@ func (d *DiffScreen) View() string {
 
 	if !d.ready {
 		b.WriteString("  Loading...\n")
-		return b.String()
+		return tea.NewView(b.String())
 	}
 
 	b.WriteString(d.viewport.View())
@@ -128,5 +129,5 @@ func (d *DiffScreen) View() string {
 	b.WriteString(Styles.StatusBar.Render(fmt.Sprintf("  q/esc: back  %s", info)))
 	b.WriteString("\n")
 
-	return b.String()
+	return tea.NewView(b.String())
 }

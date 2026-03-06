@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 type SelectScreen struct {
@@ -27,7 +27,7 @@ func (s *SelectScreen) Init() tea.Cmd { return nil }
 
 func (s *SelectScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":
 			return s, func() tea.Msg { return NavigateMsg{Screen: ScreenHome} }
@@ -103,7 +103,7 @@ func (s *SelectScreen) applyProfile(name string) {
 	}
 }
 
-func (s *SelectScreen) View() string {
+func (s *SelectScreen) View() tea.View {
 	var b strings.Builder
 
 	mode := "Install"
@@ -145,5 +145,5 @@ func (s *SelectScreen) View() string {
 	b.WriteString(Styles.StatusBar.Render("  j/k: move  space: toggle  u: unstow mode  enter: confirm  esc: back  "))
 	b.WriteString("\n")
 
-	return b.String()
+	return tea.NewView(b.String())
 }

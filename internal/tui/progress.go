@@ -6,7 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
+	v1tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/treycaliva/dotfiles/internal/platform"
@@ -71,7 +72,7 @@ func NewProgressScreen(state *AppState) *ProgressScreen {
 }
 
 func (p *ProgressScreen) Init() tea.Cmd {
-	return tea.Batch(p.spinner.Tick, p.processNext())
+	return tea.Batch(wrapV1Cmd(p.spinner.Tick), p.processNext())
 }
 
 // processNext returns a tea.Cmd that processes the next pending package.
@@ -194,9 +195,9 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case spinner.TickMsg:
 		if !p.done {
-			var cmd tea.Cmd
-			p.spinner, cmd = p.spinner.Update(msg)
-			return p, cmd
+			var v1cmd v1tea.Cmd
+			p.spinner, v1cmd = p.spinner.Update(msg)
+			return p, wrapV1Cmd(v1cmd)
 		}
 		return p, nil
 
@@ -261,22 +262,22 @@ func (p *ProgressScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		}
 		return p, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if p.done && msg.String() == "enter" {
 			return p, func() tea.Msg { return NavigateMsg{Screen: ScreenSummary} }
 		}
 		// Allow scrolling the log viewport
 		if p.ready {
-			var cmd tea.Cmd
-			p.logView, cmd = p.logView.Update(msg)
-			return p, cmd
+			var v1cmd v1tea.Cmd
+			p.logView, v1cmd = p.logView.Update(msg)
+			return p, wrapV1Cmd(v1cmd)
 		}
 	}
 
 	return p, nil
 }
 
-func (p *ProgressScreen) View() string {
+func (p *ProgressScreen) View() tea.View {
 	var b strings.Builder
 
 	title := "Installing packages"
@@ -320,5 +321,5 @@ func (p *ProgressScreen) View() string {
 	}
 	b.WriteString("\n")
 
-	return b.String()
+	return tea.NewView(b.String())
 }
