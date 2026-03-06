@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/treycaliva/dotfiles/internal/config"
+	"github.com/treycaliva/dotfiles/internal/direnv"
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 
@@ -34,6 +35,7 @@ const (
 	ScreenHome Screen = iota
 	ScreenSelect
 	ScreenPreview
+	ScreenDirenvConfig
 	ScreenDiff
 	ScreenProgress
 	ScreenSummary
@@ -70,6 +72,9 @@ type AppState struct {
 	// Progress results
 	Results map[string]error
 	Backups []string
+
+	// DirenvConfig holds user-supplied direnv setup — nil when direnv is not selected.
+	DirenvConfig *direnv.Setup
 
 	// Diff target
 	DiffPkg  string
@@ -212,6 +217,8 @@ func screenName(s Screen) string {
 		return "Select Packages"
 	case ScreenPreview:
 		return "Preview"
+	case ScreenDirenvConfig:
+		return "direnv Setup"
 	case ScreenDiff:
 		return "Diff"
 	case ScreenProgress:
@@ -247,6 +254,9 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenPreview:
 		a.current = NewPreviewScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
+	case ScreenDirenvConfig:
+		a.current = NewDirenvConfigScreen(a.state)
 		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenDiff:
 		a.current = NewDiffScreen(a.state, a.state.DiffPkg, a.state.DiffFile)
