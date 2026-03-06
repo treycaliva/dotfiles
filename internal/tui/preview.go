@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/lipgloss"
@@ -34,7 +35,11 @@ type PreviewScreen struct {
 	spinner spinner.Model
 	width   int
 	height  int
+	flash   string
 }
+
+// clearFlashMsg clears the flash message after a short delay.
+type clearFlashMsg struct{}
 
 func NewPreviewScreen(state *AppState) *PreviewScreen {
 	s := spinner.New()
@@ -132,10 +137,17 @@ func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 					p.state.DiffFile = item.conflicts[0]
 					return p, func() tea.Msg { return NavigateMsg{Screen: ScreenDiff} }
 				}
+				p.flash = fmt.Sprintf("No conflicts for %s", item.pkg)
+				return p, tea.Tick(time.Second*2, func(time.Time) tea.Msg {
+					return clearFlashMsg{}
+				})
 			}
 		case "enter":
 			return p, func() tea.Msg { return NavigateMsg{Screen: ScreenProgress} }
 		}
+	case clearFlashMsg:
+		p.flash = ""
+		return p, nil
 	case spinner.TickMsg:
 		if p.loading {
 			var v1cmd v1tea.Cmd
@@ -202,6 +214,10 @@ func (p *PreviewScreen) View() tea.View {
 		}
 
 		b.WriteString(cardStyle.Render(cardLines.String()) + "\n")
+	}
+
+	if p.flash != "" {
+		b.WriteString("\n  " + Styles.Dimmed.Render(p.flash) + "\n")
 	}
 
 	return tea.NewView(b.String())
