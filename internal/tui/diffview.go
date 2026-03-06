@@ -44,10 +44,25 @@ func (d *DiffScreen) SetSize(w, h int) {
 	}
 	d.width = w
 	d.height = h
+	vw := w - 4
+	vh := h - 2
+	if vh < 3 {
+		vh = 3
+	}
+	if !d.ready {
+		d.viewport = viewport.New(vw, vh)
+		d.ready = true
+	} else {
+		d.viewport.Width = vw
+		d.viewport.Height = vh
+	}
 }
 
 func (d *DiffScreen) StatusBar() []KeyBinding {
-	return []KeyBinding{}
+	return []KeyBinding{
+		{Key: "j/k", Help: "scroll"},
+		{Key: "esc", Help: "back"},
+	}
 }
 
 func (d *DiffScreen) Init() tea.Cmd {
@@ -69,28 +84,11 @@ func (d *DiffScreen) Init() tea.Cmd {
 func (d *DiffScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		headerHeight := 3 // title + blank line
-		footerHeight := 2 // status bar + blank line
-		height := msg.Height - headerHeight - footerHeight
-		if height < 1 {
-			height = 1
-		}
-		if !d.ready {
-			d.viewport = viewport.New(msg.Width, height)
-			d.ready = true
-		} else {
-			d.viewport.Width = msg.Width
-			d.viewport.Height = height
-		}
+		// Sizing handled by App via SetSize()
 		return d, nil
 	case diffContentMsg:
 		styled := d.styleDiff(msg.content)
-		if d.ready {
-			d.viewport.SetContent(styled)
-		} else {
-			// Store content; it will be set when viewport initializes
-			d.viewport.SetContent(styled)
-		}
+		d.viewport.SetContent(styled)
 		return d, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
@@ -129,10 +127,6 @@ func (d *DiffScreen) styleDiff(raw string) string {
 
 func (d *DiffScreen) View() tea.View {
 	var b strings.Builder
-
-	title := fmt.Sprintf("  Diff: %s — ~/%s", d.pkg, d.file)
-	b.WriteString(Styles.Title.Render(title))
-	b.WriteString("\n\n")
 
 	if !d.ready {
 		b.WriteString("  Loading...\n")
