@@ -132,9 +132,14 @@ func (s *SelectScreen) View() tea.View {
 	b.WriteString("\n")
 
 	for i, name := range s.packages {
+		isCursor := s.cursor == i
+
 		var checked string
 		if s.checked[i] {
 			checked = Styles.Selected.Render("● ")
+		} else if isCursor {
+			// Use white so ○ is visible against the BrightBlack highlight background
+			checked = lipgloss.NewStyle().Foreground(Theme.White).Render("○ ")
 		} else {
 			checked = Styles.Dimmed.Render("○ ")
 		}
@@ -146,10 +151,15 @@ func (s *SelectScreen) View() tea.View {
 			statusIcon = Icons.Warning + " "
 		}
 
-		desc := Styles.Dimmed.Render(s.state.Config.Packages[name].Description)
+		var desc string
+		if isCursor {
+			desc = lipgloss.NewStyle().Foreground(Theme.White).Render(s.state.Config.Packages[name].Description)
+		} else {
+			desc = Styles.Dimmed.Render(s.state.Config.Packages[name].Description)
+		}
 		content := fmt.Sprintf("  %s%s%-14s %s", checked, statusIcon, name, desc)
 
-		if s.cursor == i {
+		if isCursor {
 			contentW := lipgloss.Width(content)
 			pad := s.width - contentW
 			if pad < 0 {
@@ -178,7 +188,7 @@ func (s *SelectScreen) View() tea.View {
 			Render(fmt.Sprintf("[%s] %s", p.key, p.label))
 		pillParts = append(pillParts, pill)
 	}
-	b.WriteString("  " + strings.Join(pillParts, "  ") + "\n")
+	b.WriteString("  " + lipgloss.JoinHorizontal(lipgloss.Top, pillParts...) + "\n")
 
 	return tea.NewView(b.String())
 }
