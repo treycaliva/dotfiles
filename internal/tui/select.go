@@ -136,12 +136,19 @@ func (s *SelectScreen) View() tea.View {
 
 		var checked string
 		if s.checked[i] {
-			checked = Styles.Selected.Render("● ")
+			checked = Icons.Checked
 		} else if isCursor {
-			// Use white so ○ is visible against the BrightBlack highlight background
-			checked = lipgloss.NewStyle().Foreground(Theme.White).Render("○ ")
+			// Use white so unchecked icon is visible against the BrightBlack highlight background
+			checked = lipgloss.NewStyle().Foreground(Theme.White).Render("󰄱 ")
 		} else {
-			checked = Styles.Dimmed.Render("○ ")
+			checked = Icons.Unchecked
+		}
+
+		var cursorIcon string
+		if isCursor {
+			cursorIcon = Icons.Cursor
+		} else {
+			cursorIcon = "  "
 		}
 
 		var statusIcon string
@@ -157,7 +164,7 @@ func (s *SelectScreen) View() tea.View {
 		} else {
 			desc = Styles.Dimmed.Render(s.state.Config.Packages[name].Description)
 		}
-		content := fmt.Sprintf("  %s%s%-14s %s", checked, statusIcon, name, desc)
+		content := fmt.Sprintf(" %s%s%s%-14s %s", cursorIcon, checked, statusIcon, name, desc)
 
 		if isCursor {
 			contentW := lipgloss.Width(content)

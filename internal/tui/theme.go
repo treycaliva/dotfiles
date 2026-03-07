@@ -166,13 +166,19 @@ func GradientTitle(s string) string {
 }
 
 var Icons = struct {
-	Success string
-	Failure string
-	Warning string
-	Pending string
+	Success   string
+	Failure   string
+	Warning   string
+	Pending   string
+	Checked   string
+	Unchecked string
+	Cursor    string
 }{
-	Success: Styles.Success.Render(""),
-	Failure: Styles.Error.Render(""),
-	Warning: Styles.Warning.Render(""),
-	Pending: Styles.Warning.Render(""),
+	Success:   Styles.Success.Render(" "),
+	Failure:   Styles.Error.Render(" "),
+	Warning:   Styles.Warning.Render(" "),
+	Pending:   Styles.Warning.Render("󰔟 "),
+	Checked:   Styles.Selected.Render("󰄲 "),
+	Unchecked: Styles.Dimmed.Render("󰄱 "),
+	Cursor:    lipgloss.NewStyle().Foreground(Theme.Yellow).Render("▶ "),
 }

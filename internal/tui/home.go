@@ -70,7 +70,7 @@ func (h *HomeScreen) View() tea.View {
 
 		var pill string
 		if h.state.StowStatus[name] {
-			pill = Styles.PillSuccess.Render("installed")
+			pill = Styles.PillSuccess.Render("  installed")
 		} else {
 			pill = Styles.PillWarning.Render("not installed")
 		}

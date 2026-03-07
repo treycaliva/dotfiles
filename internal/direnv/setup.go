@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -19,6 +20,61 @@ type Setup struct {
 	Context   string   // "personal" or "work"
 	OPAccount string   // op account shorthand, e.g. my.1password.com
 	Secrets   []Secret
+}
+
+// ReadExistingSetup attempts to read the current direnv setup from ~/.zshrc.local
+// and the corresponding op template. Returns nil if no setup is found.
+func ReadExistingSetup(homeDir string) (*Setup, error) {
+	setup := &Setup{
+		Context: "personal", // Default
+	}
+
+	zshrcLocalPath := filepath.Join(homeDir, ".zshrc.local")
+	data, err := os.ReadFile(zshrcLocalPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil // No existing setup
+		}
+		return nil, err
+	}
+
+	foundConfig := false
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "export DOTFILES_CONTEXT=") {
+			setup.Context = strings.TrimPrefix(line, "export DOTFILES_CONTEXT=")
+			setup.Context = strings.Trim(setup.Context, `"'`)
+			foundConfig = true
+		}
+		if strings.HasPrefix(line, "export DOTFILES_OP_ACCOUNT=") {
+			setup.OPAccount = strings.TrimPrefix(line, "export DOTFILES_OP_ACCOUNT=")
+			setup.OPAccount = strings.Trim(setup.OPAccount, `"'`)
+			foundConfig = true
+		}
+	}
+
+	if !foundConfig {
+		return nil, nil
+	}
+
+	// Try to read secrets from template
+	tplPath := filepath.Join(homeDir, ".config", "direnv", "templates", setup.Context+".env.tpl")
+	tplData, err := os.ReadFile(tplPath)
+	if err == nil {
+		re := regexp.MustCompile(`^export\s+([A-Za-z0-9_]+)\s*=\s*\{\{\s*(op://.+?)\s*\}\}$`)
+		for _, line := range strings.Split(string(tplData), "\n") {
+			line = strings.TrimSpace(line)
+			matches := re.FindStringSubmatch(line)
+			if len(matches) == 3 {
+				setup.Secrets = append(setup.Secrets, Secret{
+					Key:   matches[1],
+					OPRef: matches[2],
+				})
+			}
+		}
+	}
+
+	return setup, nil
 }
 
 // WriteZshrcLocal writes DOTFILES_CONTEXT and DOTFILES_OP_ACCOUNT into

@@ -8,7 +8,6 @@ import (
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 
-	v1tea "github.com/charmbracelet/bubbletea"
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -17,56 +16,6 @@ import (
 type KeyBinding struct {
 	Key  string
 	Help string
-}
-
-// wrapV1Cmd converts a bubbles v1 Cmd (which returns a v1 Msg / interface{})
-// into a bubbletea v2 Cmd so that bubbles components remain usable while we
-// run on the v2 runtime.
-func wrapV1Cmd(cmd v1tea.Cmd) tea.Cmd {
-	if cmd == nil {
-		return nil
-	}
-	return func() tea.Msg { return cmd() }
-}
-
-// toV1KeyMsg converts a v2 KeyPressMsg into a v1 KeyMsg so that bubbles v1
-// components (e.g. textinput) can process keyboard events from the v2 runtime.
-func toV1KeyMsg(k tea.KeyPressMsg) v1tea.KeyMsg {
-	v1key := v1tea.Key{Alt: k.Mod.Contains(tea.ModAlt)}
-
-	switch k.Code {
-	case tea.KeyBackspace:
-		v1key.Type = v1tea.KeyBackspace
-	case tea.KeyDelete:
-		v1key.Type = v1tea.KeyDelete
-	case tea.KeyLeft:
-		v1key.Type = v1tea.KeyLeft
-	case tea.KeyRight:
-		v1key.Type = v1tea.KeyRight
-	case tea.KeyHome:
-		v1key.Type = v1tea.KeyHome
-	case tea.KeyEnd:
-		v1key.Type = v1tea.KeyEnd
-	case tea.KeyTab:
-		v1key.Type = v1tea.KeyTab
-	case tea.KeyEnter:
-		v1key.Type = v1tea.KeyEnter
-	case tea.KeyEscape:
-		v1key.Type = v1tea.KeyEscape
-	default:
-		if k.Mod.Contains(tea.ModCtrl) && k.Code >= 'a' && k.Code <= 'z' {
-			// v1 ctrl keys map to raw control codes (ctrl+a = 1, etc.)
-			v1key.Type = v1tea.KeyType(k.Code - 'a' + 1)
-		} else if k.Text != "" {
-			v1key.Type = v1tea.KeyRunes
-			v1key.Runes = []rune(k.Text)
-		} else {
-			v1key.Type = v1tea.KeyRunes
-			v1key.Runes = []rune{rune(k.Code)}
-		}
-	}
-
-	return v1tea.KeyMsg(v1key)
 }
 
 type Screen int
@@ -186,7 +135,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.showHelp = false
 				return a, nil
 			}
-			if a.screen != ScreenProgress && a.screen != ScreenDiff && a.screen != ScreenDirenvConfig {
+			if a.screen == ScreenSummary || (a.screen != ScreenProgress && a.screen != ScreenDiff && a.screen != ScreenDirenvConfig) {
 				return a, tea.Quit
 			}
 		}
@@ -198,7 +147,13 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.width = msg.Width
 		a.height = msg.Height
 		a.contentW = msg.Width
-		a.contentH = msg.Height - chromeHeaderLines - chromeFooterLines
+		if a.contentW > 90 {
+			a.contentW = 90
+		}
+		
+		headerH := lipgloss.Height(a.renderHeader())
+		footerH := lipgloss.Height(a.renderFooter())
+		a.contentH = msg.Height - headerH - footerH
 		if a.contentH < 3 {
 			a.contentH = 3
 		}
@@ -234,18 +189,31 @@ func (a App) renderHeader() string {
 
 func (a App) renderFooter() string {
 	bindings := a.current.StatusBar()
-	bindings = append(bindings,
-		KeyBinding{Key: "?", Help: "help"},
-		KeyBinding{Key: "q", Help: "quit"},
-	)
-	var parts []string
+	
+	var leftParts []string
 	for _, b := range bindings {
 		key := lipgloss.NewStyle().Bold(true).Foreground(Theme.Yellow).Render(b.Key)
-		parts = append(parts, key+":"+b.Help)
+		leftParts = append(leftParts, key+":"+b.Help)
 	}
-	content := "  " + strings.Join(parts, "  ") + "  "
+	leftContent := "  " + strings.Join(leftParts, "  ")
+	
+	var rightParts []string
+	for _, b := range []KeyBinding{{Key: "?", Help: "help"}, {Key: "q", Help: "quit"}} {
+		key := lipgloss.NewStyle().Bold(true).Foreground(Theme.Yellow).Render(b.Key)
+		rightParts = append(rightParts, key+":"+b.Help)
+	}
+	rightContent := strings.Join(rightParts, "  ") + "  "
+
+	leftW := lipgloss.Width(leftContent)
+	rightW := lipgloss.Width(rightContent)
+	gap := a.width - leftW - rightW
+	if gap < 0 {
+		gap = 0
+	}
+	
+	content := leftContent + strings.Repeat(" ", gap) + rightContent
 	return lipgloss.NewStyle().
-		Background(Theme.Black).
+		Background(lipgloss.Color("#282828")).
 		Foreground(Theme.White).
 		Width(a.width).
 		Render(content)
@@ -280,6 +248,7 @@ func (a App) View() tea.View {
 	header := a.renderHeader()
 	footer := a.renderFooter()
 	content := a.current.View().Content
+	content = lipgloss.PlaceHorizontal(a.width, lipgloss.Center, content)
 	return tea.NewView(lipgloss.JoinVertical(lipgloss.Left, header, content, footer))
 }
 

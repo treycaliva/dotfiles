@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -15,7 +16,8 @@ import (
 type direnvStep int
 
 const (
-	direnvStepContext direnvStep = iota
+	direnvStepExisting direnvStep = iota
+	direnvStepContext
 	direnvStepOPAccount
 	direnvStepSecretKey
 	direnvStepSecretRef
@@ -49,7 +51,7 @@ func NewDirenvConfigScreen(state *AppState) *DirenvConfigScreen {
 	secretRef.Placeholder = "e.g. op://Personal/GitHub/token"
 	secretRef.CharLimit = 256
 
-	return &DirenvConfigScreen{
+	screen := &DirenvConfigScreen{
 		state:     state,
 		step:      direnvStepContext,
 		context:   "personal",
@@ -57,6 +59,16 @@ func NewDirenvConfigScreen(state *AppState) *DirenvConfigScreen {
 		secretKey: secretKey,
 		secretRef: secretRef,
 	}
+
+	// Load existing if available
+	if setup, _ := direnv.ReadExistingSetup(state.HomeDir); setup != nil {
+		screen.context = setup.Context
+		screen.account.SetValue(setup.OPAccount)
+		screen.secrets = setup.Secrets
+		screen.step = direnvStepExisting
+	}
+
+	return screen
 }
 
 func (d *DirenvConfigScreen) Init() tea.Cmd { return nil }
@@ -74,8 +86,12 @@ func (d *DirenvConfigScreen) SetSize(w, h int) {
 
 func (d *DirenvConfigScreen) StatusBar() []KeyBinding {
 	switch d.step {
+	case direnvStepExisting:
+		return []KeyBinding{{Key: "enter", Help: "keep"}, {Key: "e", Help: "edit"}, {Key: "esc", Help: "back"}}
 	case direnvStepContext:
 		return []KeyBinding{{Key: "tab", Help: "toggle"}, {Key: "enter", Help: "next"}, {Key: "esc", Help: "back"}}
+	case direnvStepAddAnother:
+		return []KeyBinding{{Key: "y", Help: "add"}, {Key: "n/enter", Help: "done"}, {Key: "1-9", Help: "delete secret"}, {Key: "esc", Help: "back"}}
 	case direnvStepConfirm:
 		return []KeyBinding{{Key: "enter", Help: "install"}, {Key: "esc", Help: "back"}}
 	default:
@@ -90,6 +106,11 @@ func (d *DirenvConfigScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		case "esc":
 			d.state.DirenvConfig = nil
 			return d, func() tea.Msg { return NavigateMsg{Screen: ScreenPreview} }
+		case "e", "E":
+			if d.step == direnvStepExisting {
+				d.step = direnvStepContext
+				return d, nil
+			}
 		case "tab":
 			if d.step == direnvStepContext {
 				if d.context == "personal" {
@@ -111,6 +132,15 @@ func (d *DirenvConfigScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		case "n", "N":
 			if d.step == direnvStepAddAnother {
 				d.step = direnvStepConfirm
+			}
+		default:
+			// Handle deletion by index in AddAnother step
+			if d.step == direnvStepAddAnother {
+				if num, err := strconv.Atoi(msg.String()); err == nil && num >= 1 && num <= len(d.secrets) {
+					// Delete the secret at index num-1
+					d.secrets = append(d.secrets[:num-1], d.secrets[num:]...)
+					return d, nil
+				}
 			}
 		}
 	}
@@ -144,6 +174,10 @@ func (d *DirenvConfigScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 // advance validates the current step and moves to the next.
 func (d *DirenvConfigScreen) advance() (ScreenModel, tea.Cmd) {
 	switch d.step {
+	case direnvStepExisting:
+		d.step = direnvStepConfirm
+		return d, nil
+
 	case direnvStepContext:
 		d.step = direnvStepOPAccount
 		d.account.Focus()
@@ -153,12 +187,20 @@ func (d *DirenvConfigScreen) advance() (ScreenModel, tea.Cmd) {
 		if strings.TrimSpace(d.account.Value()) == "" {
 			return d, nil
 		}
+		if len(d.secrets) > 0 {
+			d.step = direnvStepAddAnother
+			return d, nil
+		}
 		d.step = direnvStepSecretKey
 		d.secretKey.Focus()
 		return d, wrapV1Cmd(textinput.Blink)
 
 	case direnvStepSecretKey:
 		if strings.TrimSpace(d.secretKey.Value()) == "" {
+			// Skip adding if empty
+			if len(d.secrets) > 0 {
+				d.step = direnvStepAddAnother
+			}
 			return d, nil
 		}
 		d.step = direnvStepSecretRef
@@ -200,6 +242,19 @@ func (d *DirenvConfigScreen) View() tea.View {
 	dim := Styles.Dimmed
 
 	switch d.step {
+	case direnvStepExisting:
+		b.WriteString("  " + label.Render("Existing Configuration Found") + "\n\n")
+		b.WriteString(fmt.Sprintf("  Context:    %s\n", Styles.Success.Render(d.context)))
+		b.WriteString(fmt.Sprintf("  OP Account: %s\n", Styles.Success.Render(strings.TrimSpace(d.account.Value()))))
+		if len(d.secrets) > 0 {
+			b.WriteString("\n  " + label.Render("Secrets") + "\n")
+			for _, s := range d.secrets {
+				b.WriteString(fmt.Sprintf("  %s %s\n", Icons.Success, s.Key))
+				b.WriteString(fmt.Sprintf("      %s\n", dim.Render(s.OPRef)))
+			}
+		}
+		b.WriteString("\n  " + dim.Render("enter: keep and proceed   e: edit configuration") + "\n")
+
 	case direnvStepContext:
 		b.WriteString("  " + label.Render("Context") + "\n\n")
 		for _, ctx := range []string{"personal", "work"} {
@@ -225,11 +280,11 @@ func (d *DirenvConfigScreen) View() tea.View {
 		b.WriteString("  " + d.secretRef.View() + "\n")
 
 	case direnvStepAddAnother:
-		b.WriteString("  " + label.Render("Add another secret?") + "\n\n")
-		for _, s := range d.secrets {
-			b.WriteString(fmt.Sprintf("  %s %s = %s\n", Icons.Success, s.Key, dim.Render(s.OPRef)))
+		b.WriteString("  " + label.Render("Manage Secrets") + "\n\n")
+		for i, s := range d.secrets {
+			b.WriteString(fmt.Sprintf("  [%d] %s %s = %s\n", i+1, Icons.Success, s.Key, dim.Render(s.OPRef)))
 		}
-		b.WriteString("\n  " + dim.Render("y: add another   n/enter: done") + "\n")
+		b.WriteString("\n  " + dim.Render("y: add another   1-9: delete secret   n/enter: done") + "\n")
 
 	case direnvStepConfirm:
 		b.WriteString("  " + label.Render("Ready to install") + "\n\n")
