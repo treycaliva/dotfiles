@@ -12,8 +12,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/treycaliva/dotfiles/internal/direnv"
+	"github.com/treycaliva/dotfiles/internal/gitconfig"
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
+
 	"github.com/treycaliva/dotfiles/internal/validate"
 )
 
@@ -249,6 +251,16 @@ func (p *ProgressScreen) processNext() tea.Cmd {
 					logs = append(logs, fmt.Sprintf("[%s] direnv allow done", pkg))
 				}
 			}
+
+			// Post-stow git configuration (writes ~/.gitconfig.local).
+			if pkg == "git" && state.GitConfig != nil {
+				logs = append(logs, fmt.Sprintf("[%s] writing ~/.gitconfig.local ...", pkg))
+				if err := gitconfig.WriteGitConfigLocal(state.HomeDir, state.GitConfig); err != nil {
+					logs = append(logs, fmt.Sprintf("[%s] warning: could not write ~/.gitconfig.local: %v", pkg, err))
+				} else {
+					logs = append(logs, fmt.Sprintf("[%s] ~/.gitconfig.local updated", pkg))
+				}
+			}
 		}
 
 		return installStepMsg{
@@ -399,22 +411,27 @@ func (p *ProgressScreen) View() tea.View {
 	// Per-package rows
 	for _, item := range p.items {
 		var icon string
+		var nameStyle lipgloss.Style
 		switch item.status {
 		case statusPending:
 			icon = Styles.Dimmed.Render("  ")
+			nameStyle = Styles.Dimmed
 		case statusActive:
 			icon = p.spinner.View()
+			nameStyle = lipgloss.NewStyle().Bold(true).Foreground(Theme.Cyan)
 		case statusDone:
 			icon = Icons.Success
+			nameStyle = Styles.Success
 		case statusFailed:
 			icon = Icons.Failure
+			nameStyle = Styles.Error.Bold(true)
 		}
 
-		row := fmt.Sprintf("  %s %-14s", icon, item.name)
+		row := fmt.Sprintf("  %s %-14s", icon, nameStyle.Render(item.name))
 		if item.status == statusActive && item.phase != "" {
 			row += Styles.Dimmed.Render(item.phase + "...")
 		} else if item.status == statusPending {
-			row = Styles.Dimmed.Render(row + "pending")
+			row += Styles.Dimmed.Render("pending")
 		}
 		b.WriteString(row + "\n")
 	}
@@ -427,12 +444,23 @@ func (p *ProgressScreen) View() tea.View {
 		if viewW < 10 {
 			viewW = 10
 		}
-		bordered := Styles.Border.Width(viewW).Render(p.logView.View())
-		b.WriteString(bordered + "\n")
+		
+		// Use a distinct border style for the log
+		logStyle := Styles.Border.
+			BorderForeground(Theme.BrightBlack).
+			Width(viewW).
+			Padding(0, 1)
+			
+		b.WriteString(logStyle.Render(p.logView.View()) + "\n")
 	}
 
 	if p.done {
-		b.WriteString("\n" + Styles.Success.Render("  All done!") + "\n")
+		successBanner := lipgloss.NewStyle().
+			Foreground(Theme.Green).
+			Bold(true).
+			PaddingLeft(2).
+			Render("✓  All tasks finished!")
+		b.WriteString("\n" + successBanner + "\n")
 	}
 
 	return tea.NewView(b.String())

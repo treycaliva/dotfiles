@@ -143,9 +143,12 @@ func (p *PreviewScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 				})
 			}
 		case "enter":
-			// Route through direnv config screen when direnv is being installed.
+			// Route through config screens if applicable.
 			if !p.state.Unstowing {
 				for _, pkg := range p.state.Selected {
+					if pkg == "git" {
+						return p, func() tea.Msg { return NavigateMsg{Screen: ScreenGitConfig} }
+					}
 					if pkg == "direnv" {
 						return p, func() tea.Msg { return NavigateMsg{Screen: ScreenDirenvConfig} }
 					}

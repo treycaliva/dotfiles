@@ -66,49 +66,61 @@ func (s *SummaryScreen) View() tea.View {
 		}
 	}
 
-	// All-success banner
+	// Banner
 	if len(failed) == 0 {
 		banner := lipgloss.NewStyle().
 			Background(Theme.Green).
 			Foreground(Theme.Black).
 			Bold(true).
-			Width(s.width).
+			Width(s.width - 4).
 			Padding(0, 2).
-			Render(fmt.Sprintf("  ✓  All %d packages installed successfully!", len(succeeded)))
-		b.WriteString(banner + "\n\n")
+			Render(fmt.Sprintf("✓  All %d packages installed successfully!", len(succeeded)))
+		b.WriteString("  " + banner + "\n\n")
+	} else {
+		banner := lipgloss.NewStyle().
+			Background(Theme.Red).
+			Foreground(Theme.Black).
+			Bold(true).
+			Width(s.width - 4).
+			Padding(0, 2).
+			Render(fmt.Sprintf("✗  %d of %d tasks failed — see details below", len(failed), len(s.state.Selected)))
+		b.WriteString("  " + banner + "\n\n")
 	}
 
 	// Score line
-	scoreSuccess := Styles.Success.Bold(true).Render(fmt.Sprintf("✓ %d installed", len(succeeded)))
+	scoreSuccess := Styles.Success.Bold(true).Render(fmt.Sprintf("  %d installed", len(succeeded)))
 	scoreFail := ""
 	if len(failed) > 0 {
-		scoreFail = "  " + Styles.Error.Bold(true).Render(fmt.Sprintf("✗ %d failed", len(failed)))
+		scoreFail = "  " + Styles.Error.Bold(true).Render(fmt.Sprintf("  %d failed", len(failed)))
 	}
 	b.WriteString("  " + scoreSuccess + scoreFail + "\n\n")
 
-	// Two-column layout if wide enough and there are failures
-	if s.width >= 100 && len(failed) > 0 {
-		colW := (s.width - 4) / 2
-		var left, right strings.Builder
-		left.WriteString(Styles.Success.Render("Installed") + "\n")
-		for _, pkg := range succeeded {
-			left.WriteString(fmt.Sprintf("  %s %s\n", Icons.Success, pkg))
+	// Details section
+	if len(failed) > 0 {
+		b.WriteString("  " + Styles.Title.Render("Package Status") + "\n")
+		for _, pkg := range s.state.Selected {
+			err := s.state.Results[pkg]
+			if err == nil {
+				b.WriteString(fmt.Sprintf("    %s %s\n", Icons.Success, pkg))
+			} else {
+				// Detail error box
+				boxW := s.width - 10
+				if boxW < 20 { boxW = 20 }
+				
+				errText := fmt.Sprintf("%v", err)
+				errorBox := Styles.AccentBorderError.
+					Width(boxW).
+					Render(fmt.Sprintf("%s\n%s", 
+						Styles.Error.Bold(true).Render(pkg),
+						Styles.Dimmed.Render(errText)))
+				
+				b.WriteString("    " + Icons.Failure + " " + errorBox + "\n")
+			}
 		}
-		right.WriteString(Styles.Error.Render("Failed") + "\n")
-		for _, pkg := range failed {
-			right.WriteString(fmt.Sprintf("  %s %s — %v\n", Icons.Failure, pkg, s.state.Results[pkg]))
-		}
-		cols := lipgloss.JoinHorizontal(lipgloss.Top,
-			lipgloss.NewStyle().Width(colW).Render(left.String()),
-			lipgloss.NewStyle().Width(colW).Render(right.String()),
-		)
-		b.WriteString(cols)
 	} else {
+		// Clean list of succeeded packages
 		for _, pkg := range succeeded {
-			b.WriteString(fmt.Sprintf("  %s %s\n", Icons.Success, pkg))
-		}
-		for _, pkg := range failed {
-			b.WriteString(fmt.Sprintf("  %s %s — %v\n", Icons.Failure, pkg, s.state.Results[pkg]))
+			b.WriteString(fmt.Sprintf("    %s %s\n", Icons.Success, pkg))
 		}
 	}
 
@@ -116,11 +128,11 @@ func (s *SummaryScreen) View() tea.View {
 	if len(s.state.Backups) > 0 {
 		b.WriteString("\n")
 		if s.backupsExpanded {
-			b.WriteString(Styles.Title.Render("  Backed up files") + "\n")
+			b.WriteString("  " + Styles.Title.Render("Backed up files") + "\n")
 			for _, bak := range s.state.Backups {
-				b.WriteString(fmt.Sprintf("  %s\n", Styles.Dimmed.Render(bak)))
+				b.WriteString(fmt.Sprintf("    %s\n", Styles.Dimmed.Render(bak)))
 			}
-			b.WriteString(Styles.Dimmed.Render("  b: collapse") + "\n")
+			b.WriteString("    " + Styles.Dimmed.Render("b: collapse") + "\n")
 		} else {
 			b.WriteString(fmt.Sprintf("  %s  %s\n",
 				Styles.Warning.Render(fmt.Sprintf("↓ %d files backed up", len(s.state.Backups))),

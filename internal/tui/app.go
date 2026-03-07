@@ -5,6 +5,7 @@ import (
 
 	"github.com/treycaliva/dotfiles/internal/config"
 	"github.com/treycaliva/dotfiles/internal/direnv"
+	"github.com/treycaliva/dotfiles/internal/gitconfig"
 	"github.com/treycaliva/dotfiles/internal/platform"
 	"github.com/treycaliva/dotfiles/internal/stow"
 
@@ -25,6 +26,7 @@ const (
 	ScreenSelect
 	ScreenPreview
 	ScreenDirenvConfig
+	ScreenGitConfig
 	ScreenDiff
 	ScreenProgress
 	ScreenSummary
@@ -64,6 +66,9 @@ type AppState struct {
 
 	// DirenvConfig holds user-supplied direnv setup — nil when direnv is not selected.
 	DirenvConfig *direnv.Setup
+
+	// GitConfig holds user-supplied git identity — nil when git is not selected.
+	GitConfig *gitconfig.Setup
 
 	// Diff target
 	DiffPkg  string
@@ -135,7 +140,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.showHelp = false
 				return a, nil
 			}
-			if a.screen == ScreenSummary || (a.screen != ScreenProgress && a.screen != ScreenDiff && a.screen != ScreenDirenvConfig) {
+			if a.screen == ScreenSummary || (a.screen != ScreenProgress && a.screen != ScreenDiff && a.screen != ScreenDirenvConfig && a.screen != ScreenGitConfig) {
 				return a, tea.Quit
 			}
 		}
@@ -188,35 +193,9 @@ func (a App) renderHeader() string {
 }
 
 func (a App) renderFooter() string {
-	bindings := a.current.StatusBar()
-	
-	var leftParts []string
-	for _, b := range bindings {
-		key := lipgloss.NewStyle().Bold(true).Foreground(Theme.Yellow).Render(b.Key)
-		leftParts = append(leftParts, key+":"+b.Help)
-	}
-	leftContent := "  " + strings.Join(leftParts, "  ")
-	
-	var rightParts []string
-	for _, b := range []KeyBinding{{Key: "?", Help: "help"}, {Key: "q", Help: "quit"}} {
-		key := lipgloss.NewStyle().Bold(true).Foreground(Theme.Yellow).Render(b.Key)
-		rightParts = append(rightParts, key+":"+b.Help)
-	}
-	rightContent := strings.Join(rightParts, "  ") + "  "
-
-	leftW := lipgloss.Width(leftContent)
-	rightW := lipgloss.Width(rightContent)
-	gap := a.width - leftW - rightW
-	if gap < 0 {
-		gap = 0
-	}
-	
-	content := leftContent + strings.Repeat(" ", gap) + rightContent
-	return lipgloss.NewStyle().
-		Background(lipgloss.Color("#282828")).
-		Foreground(Theme.White).
-		Width(a.width).
-		Render(content)
+	left := a.current.StatusBar()
+	right := []KeyBinding{{Key: "?", Help: "help"}, {Key: "q", Help: "quit"}}
+	return RenderStatusBar(a.width, left, right)
 }
 
 func screenName(s Screen) string {
@@ -229,6 +208,8 @@ func screenName(s Screen) string {
 		return "Preview"
 	case ScreenDirenvConfig:
 		return "direnv Setup"
+	case ScreenGitConfig:
+		return "Git Setup"
 	case ScreenDiff:
 		return "Diff"
 	case ScreenProgress:
@@ -269,6 +250,9 @@ func (a App) navigate(msg NavigateMsg) (tea.Model, tea.Cmd) {
 	case ScreenDirenvConfig:
 		a.current = NewDirenvConfigScreen(a.state)
 		a.current.SetSize(a.contentW, a.contentH)
+	case ScreenGitConfig:
+		a.current = NewGitConfigScreen(a.state)
+		a.current.SetSize(a.contentW, a.contentH)
 	case ScreenDiff:
 		a.current = NewDiffScreen(a.state, a.state.DiffPkg, a.state.DiffFile)
 		a.current.SetSize(a.contentW, a.contentH)
@@ -308,5 +292,11 @@ func helpText() string {
     esc       Back to preview
 
   Summary
-    r         Start over`
+    r         Start over
+
+  direnv / Git Setup
+    tab       Toggle options
+    e         Edit existing configuration
+    y/n       Confirm "add another"
+    1-9       Delete secret (direnv)`
 }

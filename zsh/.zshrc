@@ -124,7 +124,10 @@ export PATH=~/.groundcover/bin:/$PATH
 export PATH="/Users/treycaliva/.antigravity/antigravity/bin:$PATH"
 
 # direnv — must come before .zshrc.local so DOTFILES_CONTEXT is available
-command -v direnv >/dev/null && eval "$(direnv hook zsh)"
+if command -v direnv >/dev/null; then
+  export DIRENV_LOG_FORMAT=""
+  eval "$(direnv hook zsh)"
+fi
 
 # Load local overrides (e.g. machine-specific aliases or exports)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local

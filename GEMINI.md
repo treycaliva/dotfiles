@@ -23,12 +23,24 @@ Each top-level directory is a "stow package" whose contents are mirrored to `$HO
 | `ghostty/` | `.../com.mitchellh.ghostty/config` | Ghostty terminal configuration. |
 | `alacritty/`| `alacritty.toml` | Alacritty terminal configuration. |
 | `git/` | `.gitconfig` | Global git settings and aliases. |
+| `direnv/` | `.envrc`, `direnvrc` | Environment management with 1Password templates. |
 | `p10k/` | `p10k.zsh` | Powerlevel10k prompt configuration. |
 
 ## Usage & Commands
 
-### Initial Setup
-Run the bootstrap script to install dependencies and symlink configurations:
+### Go TUI Installer (Recommended)
+A modern terminal-based installer that validates dependencies, previews changes, and handles interactive configurations like `git` identity and `direnv` 1Password secrets.
+
+```bash
+# Build the installer
+make build
+
+# Run it
+./dotfiles-installer
+```
+
+### Legacy Bootstrap (POSIX Shell)
+The original `install.sh` script is maintained for environments where Go is not available.
 ```bash
 ./install.sh
 ```
@@ -46,6 +58,7 @@ stow -R <package_name>
 ```
 
 ### Validation
+- **Go Workspace**: `make test`
 - **Zsh**: `zsh -n zsh/.zshrc` (syntax check)
 - **Tmux**: `tmux -f tmux/.tmux.conf new -d && tmux kill-server`
 - **Vim/Nvim**: `nvim +PlugInstall +qa`
@@ -59,4 +72,4 @@ stow -R <package_name>
 - **Plugins**: Both `zinit` (Zsh) and `vim-plug` (Vim/Nvim) are configured to auto-bootstrap if missing.
 
 ## Active Projects
-- **Go TUI Installer**: A modern replacement for `install.sh` built with Go and Bubble Tea is currently under development. See `docs/plans/` for details.
+- **Go TUI Installer**: A modern, interactive replacement for `install.sh` built with Go, Bubble Tea v2, and LipGloss. It supports dependency validation, previewing changes, and custom setup screens for `git` (identity) and `direnv` (1Password integration). See `docs/plans/` for architectural details.
