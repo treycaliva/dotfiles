@@ -29,6 +29,46 @@ func wrapV1Cmd(cmd v1tea.Cmd) tea.Cmd {
 	return func() tea.Msg { return cmd() }
 }
 
+// toV1KeyMsg converts a v2 KeyPressMsg into a v1 KeyMsg so that bubbles v1
+// components (e.g. textinput) can process keyboard events from the v2 runtime.
+func toV1KeyMsg(k tea.KeyPressMsg) v1tea.KeyMsg {
+	v1key := v1tea.Key{Alt: k.Mod.Contains(tea.ModAlt)}
+
+	switch k.Code {
+	case tea.KeyBackspace:
+		v1key.Type = v1tea.KeyBackspace
+	case tea.KeyDelete:
+		v1key.Type = v1tea.KeyDelete
+	case tea.KeyLeft:
+		v1key.Type = v1tea.KeyLeft
+	case tea.KeyRight:
+		v1key.Type = v1tea.KeyRight
+	case tea.KeyHome:
+		v1key.Type = v1tea.KeyHome
+	case tea.KeyEnd:
+		v1key.Type = v1tea.KeyEnd
+	case tea.KeyTab:
+		v1key.Type = v1tea.KeyTab
+	case tea.KeyEnter:
+		v1key.Type = v1tea.KeyEnter
+	case tea.KeyEscape:
+		v1key.Type = v1tea.KeyEscape
+	default:
+		if k.Mod.Contains(tea.ModCtrl) && k.Code >= 'a' && k.Code <= 'z' {
+			// v1 ctrl keys map to raw control codes (ctrl+a = 1, etc.)
+			v1key.Type = v1tea.KeyType(k.Code - 'a' + 1)
+		} else if k.Text != "" {
+			v1key.Type = v1tea.KeyRunes
+			v1key.Runes = []rune(k.Text)
+		} else {
+			v1key.Type = v1tea.KeyRunes
+			v1key.Runes = []rune{rune(k.Code)}
+		}
+	}
+
+	return v1tea.KeyMsg(v1key)
+}
+
 type Screen int
 
 const (
@@ -137,8 +177,10 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return a, tea.Quit
 		case "?":
-			a.showHelp = !a.showHelp
-			return a, nil
+			if a.screen != ScreenDirenvConfig {
+				a.showHelp = !a.showHelp
+				return a, nil
+			}
 		case "q":
 			if a.showHelp {
 				a.showHelp = false

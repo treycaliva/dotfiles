@@ -115,15 +115,27 @@ func (d *DirenvConfigScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 		}
 	}
 
-	// Forward keyboard events to active textinput.
+	// Convert v2 messages to v1 before forwarding to bubbles textinput.
+	var v1msg v1tea.Msg = msg
+	switch m := msg.(type) {
+	case tea.KeyPressMsg:
+		v1msg = toV1KeyMsg(m)
+	case tea.PasteMsg:
+		v1msg = v1tea.KeyMsg(v1tea.Key{
+			Type:  v1tea.KeyRunes,
+			Runes: []rune(m.Content),
+			Paste: true,
+		})
+	}
+
 	var v1cmd v1tea.Cmd
 	switch d.step {
 	case direnvStepOPAccount:
-		d.account, v1cmd = d.account.Update(msg)
+		d.account, v1cmd = d.account.Update(v1msg)
 	case direnvStepSecretKey:
-		d.secretKey, v1cmd = d.secretKey.Update(msg)
+		d.secretKey, v1cmd = d.secretKey.Update(v1msg)
 	case direnvStepSecretRef:
-		d.secretRef, v1cmd = d.secretRef.Update(msg)
+		d.secretRef, v1cmd = d.secretRef.Update(v1msg)
 	}
 
 	return d, wrapV1Cmd(v1cmd)
