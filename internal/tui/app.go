@@ -46,12 +46,21 @@ type ScreenModel interface {
 	StatusBar() []KeyBinding
 }
 
+type AppMode int
+
+const (
+	ModeInstall AppMode = iota
+	ModeProject
+)
+
 // AppState holds shared state passed between screens.
 type AppState struct {
 	Config      *config.Config
 	Platform    platform.Info
 	DotfilesDir string
 	HomeDir     string
+	ProjectDir  string
+	Mode        AppMode
 
 	// Selection
 	Selected  []string
@@ -102,21 +111,35 @@ type App struct {
 	contentH int
 }
 
-func NewApp(cfg *config.Config, plat platform.Info, dotfilesDir, homeDir string) App {
+func NewApp(cfg *config.Config, plat platform.Info, dotfilesDir, homeDir, projectDir string, mode AppMode) App {
 	state := &AppState{
 		Config:      cfg,
 		Platform:    plat,
 		DotfilesDir: dotfilesDir,
 		HomeDir:     homeDir,
+		ProjectDir:  projectDir,
+		Mode:        mode,
 		Results:     make(map[string]error),
 		Conflicts:   make(map[string][]string),
 	}
 	state.RefreshStowStatus()
 
+	var startScreen Screen
+	var current ScreenModel
+
+	if mode == ModeProject {
+		state.Selected = []string{"direnv"}
+		startScreen = ScreenDirenvConfig
+		current = NewDirenvConfigScreen(state)
+	} else {
+		startScreen = ScreenHome
+		current = NewHomeScreen(state)
+	}
+
 	return App{
 		state:   state,
-		screen:  ScreenHome,
-		current: NewHomeScreen(state),
+		screen:  startScreen,
+		current: current,
 	}
 }
 

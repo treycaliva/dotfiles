@@ -18,6 +18,7 @@ type direnvStep int
 const (
 	direnvStepExisting direnvStep = iota
 	direnvStepContext
+	direnvStepInherit
 	direnvStepOPAccount
 	direnvStepSecretKey
 	direnvStepSecretRef
@@ -27,10 +28,11 @@ const (
 
 // DirenvConfigScreen collects 1Password configuration before direnv is stowed.
 type DirenvConfigScreen struct {
-	state     *AppState
-	step      direnvStep
-	context   string // "personal" or "work"
-	account   textinput.Model
+	state         *AppState
+	step          direnvStep
+	context       string // "personal" or "work"
+	inheritGlobal bool
+	account       textinput.Model
 	secretKey textinput.Model
 	secretRef textinput.Model
 	secrets   []direnv.Secret
@@ -52,20 +54,35 @@ func NewDirenvConfigScreen(state *AppState) *DirenvConfigScreen {
 	secretRef.CharLimit = 256
 
 	screen := &DirenvConfigScreen{
-		state:     state,
-		step:      direnvStepContext,
-		context:   "personal",
-		account:   account,
-		secretKey: secretKey,
-		secretRef: secretRef,
+		state:         state,
+		step:          direnvStepContext,
+		context:       "personal",
+		inheritGlobal: true, // Default to true
+		account:       account,
+		secretKey:     secretKey,
+		secretRef:     secretRef,
 	}
 
-	// Load existing if available
-	if setup, _ := direnv.ReadExistingSetup(state.HomeDir); setup != nil {
-		screen.context = setup.Context
-		screen.account.SetValue(setup.OPAccount)
-		screen.secrets = setup.Secrets
-		screen.step = direnvStepExisting
+	if state.Mode == ModeProject {
+		screen.context = "project"
+		screen.step = direnvStepInherit // Project starts here
+		// Try to read existing project setup
+		if setup, _ := direnv.ReadProjectSetup(state.ProjectDir); setup != nil {
+			screen.secrets = setup.Secrets
+			screen.step = direnvStepExisting
+		}
+		// Also try to read global OP account to pre-fill
+		if setup, _ := direnv.ReadExistingSetup(state.HomeDir); setup != nil {
+			screen.account.SetValue(setup.OPAccount)
+		}
+	} else {
+		// Load existing global setup if available
+		if setup, _ := direnv.ReadExistingSetup(state.HomeDir); setup != nil {
+			screen.context = setup.Context
+			screen.account.SetValue(setup.OPAccount)
+			screen.secrets = setup.Secrets
+			screen.step = direnvStepExisting
+		}
 	}
 
 	return screen
@@ -88,7 +105,7 @@ func (d *DirenvConfigScreen) StatusBar() []KeyBinding {
 	switch d.step {
 	case direnvStepExisting:
 		return []KeyBinding{{Key: "enter", Help: "keep"}, {Key: "e", Help: "edit"}, {Key: "esc", Help: "back"}}
-	case direnvStepContext:
+	case direnvStepContext, direnvStepInherit:
 		return []KeyBinding{{Key: "tab", Help: "toggle"}, {Key: "enter", Help: "next"}, {Key: "esc", Help: "back"}}
 	case direnvStepAddAnother:
 		return []KeyBinding{{Key: "y", Help: "add"}, {Key: "n/enter", Help: "done"}, {Key: "1-9", Help: "delete secret"}, {Key: "esc", Help: "back"}}
@@ -104,11 +121,18 @@ func (d *DirenvConfigScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":
+			if d.state.Mode == ModeProject {
+				return d, tea.Quit
+			}
 			d.state.DirenvConfig = nil
 			return d, func() tea.Msg { return NavigateMsg{Screen: ScreenPreview} }
 		case "e", "E":
 			if d.step == direnvStepExisting {
-				d.step = direnvStepContext
+				if d.state.Mode == ModeProject {
+					d.step = direnvStepOPAccount
+				} else {
+					d.step = direnvStepContext
+				}
 				return d, nil
 			}
 		case "tab":
@@ -118,6 +142,8 @@ func (d *DirenvConfigScreen) Update(msg tea.Msg) (ScreenModel, tea.Cmd) {
 				} else {
 					d.context = "personal"
 				}
+			} else if d.step == direnvStepInherit {
+				d.inheritGlobal = !d.inheritGlobal
 			}
 		case "enter":
 			return d.advance()
@@ -178,6 +204,11 @@ func (d *DirenvConfigScreen) advance() (ScreenModel, tea.Cmd) {
 		d.step = direnvStepConfirm
 		return d, nil
 
+	case direnvStepInherit:
+		d.step = direnvStepOPAccount
+		d.account.Focus()
+		return d, wrapV1Cmd(textinput.Blink)
+
 	case direnvStepContext:
 		d.step = direnvStepOPAccount
 		d.account.Focus()
@@ -224,9 +255,10 @@ func (d *DirenvConfigScreen) advance() (ScreenModel, tea.Cmd) {
 
 	case direnvStepConfirm:
 		d.state.DirenvConfig = &direnv.Setup{
-			Context:   d.context,
-			OPAccount: strings.TrimSpace(d.account.Value()),
-			Secrets:   d.secrets,
+			Context:       d.context,
+			OPAccount:     strings.TrimSpace(d.account.Value()),
+			Secrets:       d.secrets,
+			InheritGlobal: d.inheritGlobal,
 		}
 		return d, func() tea.Msg { return NavigateMsg{Screen: ScreenProgress} }
 	}
@@ -241,19 +273,44 @@ func (d *DirenvConfigScreen) View() tea.View {
 	label := lipgloss.NewStyle().Bold(true).Foreground(Theme.Cyan)
 	dim := Styles.Dimmed
 
+	if d.state.Mode == ModeProject {
+		b.WriteString("  " + Styles.Selected.Render("Project Mode: "+d.state.ProjectDir) + "\n\n")
+	}
+
 	switch d.step {
 	case direnvStepExisting:
 		b.WriteString("  " + label.Render("Existing Configuration Found") + "\n\n")
+		if d.state.Mode == ModeProject {
+			if d.inheritGlobal {
+				b.WriteString("  " + Styles.Success.Render("  Inherits global settings") + "\n")
+			} else {
+				b.WriteString("  " + dim.Render("○  Isolated (no global settings)") + "\n")
+			}
+		}
 		b.WriteString(fmt.Sprintf("  Context:    %s\n", Styles.Success.Render(d.context)))
 		b.WriteString(fmt.Sprintf("  OP Account: %s\n", Styles.Success.Render(strings.TrimSpace(d.account.Value()))))
 		if len(d.secrets) > 0 {
 			b.WriteString("\n  " + label.Render("Secrets") + "\n")
-			for _, s := range d.secrets {
-				b.WriteString(fmt.Sprintf("  %s %s\n", Icons.Success, s.Key))
+			for i, s := range d.secrets {
+				b.WriteString(fmt.Sprintf("  [%d] %s %s\n", i+1, Icons.Success, s.Key))
 				b.WriteString(fmt.Sprintf("      %s\n", dim.Render(s.OPRef)))
 			}
 		}
 		b.WriteString("\n  " + dim.Render("enter: keep and proceed   e: edit configuration") + "\n")
+
+	case direnvStepInherit:
+		b.WriteString("  " + label.Render("Inherit Global Configuration?") + "\n\n")
+		b.WriteString("  " + dim.Render("Global secrets (like GITHUB_TOKEN) can be inherited") + "\n")
+		b.WriteString("  " + dim.Render("via source_up in your project .envrc") + "\n\n")
+
+		if d.inheritGlobal {
+			b.WriteString("  " + Styles.Selected.Render("● Inherit Global Settings (source_up)") + "\n")
+			b.WriteString("  " + dim.Render("○ Isolated (Local Secrets Only)") + "\n")
+		} else {
+			b.WriteString("  " + dim.Render("○ Inherit Global Settings (source_up)") + "\n")
+			b.WriteString("  " + Styles.Selected.Render("● Isolated (Local Secrets Only)") + "\n")
+		}
+		b.WriteString("\n  " + dim.Render("tab: toggle  enter: next") + "\n")
 
 	case direnvStepContext:
 		b.WriteString("  " + label.Render("Context") + "\n\n")
@@ -288,7 +345,11 @@ func (d *DirenvConfigScreen) View() tea.View {
 
 	case direnvStepConfirm:
 		b.WriteString("  " + label.Render("Ready to install") + "\n\n")
-		b.WriteString(fmt.Sprintf("  Context:    %s\n", Styles.Success.Render(d.context)))
+		if d.state.Mode == ModeProject {
+			b.WriteString(fmt.Sprintf("  Target:     %s\n", Styles.Success.Render(d.state.ProjectDir)))
+		} else {
+			b.WriteString(fmt.Sprintf("  Context:    %s\n", Styles.Success.Render(d.context)))
+		}
 		b.WriteString(fmt.Sprintf("  OP Account: %s\n", Styles.Success.Render(strings.TrimSpace(d.account.Value()))))
 		if len(d.secrets) > 0 {
 			b.WriteString("\n  " + label.Render("Secrets") + "\n")
@@ -297,7 +358,12 @@ func (d *DirenvConfigScreen) View() tea.View {
 				b.WriteString(fmt.Sprintf("      %s\n", dim.Render(s.OPRef)))
 			}
 		}
-		b.WriteString("\n  " + dim.Render("Writes ~/.zshrc.local and ~/.config/direnv/templates/"+d.context+".env.tpl") + "\n")
+
+		if d.state.Mode == ModeProject {
+			b.WriteString("\n  " + dim.Render("Writes .envrc and .env.tpl to current directory") + "\n")
+		} else {
+			b.WriteString("\n  " + dim.Render("Writes ~/.zshrc.local and ~/.config/direnv/templates/"+d.context+".env.tpl") + "\n")
+		}
 	}
 
 	return tea.NewView(b.String())

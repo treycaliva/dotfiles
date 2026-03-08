@@ -1,3 +1,10 @@
+export DIRENV_LOG_FORMAT=""
+
+# direnv — must come early so DOTFILES_CONTEXT is available for other scripts
+if command -v direnv >/dev/null; then
+  eval "$(direnv hook zsh)"
+fi
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -122,12 +129,6 @@ export PATH=~/.groundcover/bin:/$PATH
 
 # Added by Antigravity
 export PATH="/Users/treycaliva/.antigravity/antigravity/bin:$PATH"
-
-# direnv — must come before .zshrc.local so DOTFILES_CONTEXT is available
-if command -v direnv >/dev/null; then
-  export DIRENV_LOG_FORMAT=""
-  eval "$(direnv hook zsh)"
-fi
 
 # Load local overrides (e.g. machine-specific aliases or exports)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local

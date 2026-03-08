@@ -1,4 +1,6 @@
 # direnvrc — sourced by direnv before every .envrc
+export DIRENV_LOG_FORMAT=""
+
 # Provides op_inject: pulls secrets from 1Password into the environment.
 #
 # Required env vars (set in ~/.zshrc.local by the dotfiles installer):
@@ -8,7 +10,8 @@
 op_inject() {
   local context="${DOTFILES_CONTEXT:-personal}"
   local account="${DOTFILES_OP_ACCOUNT:-}"
-  local template="${HOME}/.config/direnv/templates/${context}.env.tpl"
+  local default_template="${HOME}/.config/direnv/templates/${context}.env.tpl"
+  local template="${1:-$default_template}"
 
   if [ ! -f "$template" ]; then
     echo "direnv: template not found: $template" >&2

@@ -17,9 +17,10 @@ type Secret struct {
 
 // Setup holds the user-supplied direnv configuration.
 type Setup struct {
-	Context   string   // "personal" or "work"
-	OPAccount string   // op account shorthand, e.g. my.1password.com
-	Secrets   []Secret
+	Context       string // "personal" or "work"
+	OPAccount     string // op account shorthand, e.g. my.1password.com
+	Secrets       []Secret
+	InheritGlobal bool // Whether to source_up in project mode
 }
 
 // ReadExistingSetup attempts to read the current direnv setup from ~/.zshrc.local
@@ -113,6 +114,86 @@ func WriteZshrcLocal(homeDir string, setup *Setup) error {
 // existing comment lines and replacing all export lines with setup.Secrets.
 func PatchTemplate(homeDir string, setup *Setup) error {
 	path := filepath.Join(homeDir, ".config", "direnv", "templates", setup.Context+".env.tpl")
+
+	var comments []string
+	if data, err := os.ReadFile(path); err == nil {
+		for line := range strings.SplitSeq(string(data), "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "#") {
+				comments = append(comments, line)
+			}
+		}
+	}
+
+	var b strings.Builder
+	for _, c := range comments {
+		b.WriteString(c + "\n")
+	}
+	for _, s := range setup.Secrets {
+		fmt.Fprintf(&b, "export %s={{ %s }}\n", s.Key, s.OPRef)
+	}
+
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(b.String()), 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// ReadProjectSetup attempts to read the current direnv setup from a project's
+// local .env.tpl. Returns nil if no setup is found.
+func ReadProjectSetup(projectDir string) (*Setup, error) {
+	tplPath := filepath.Join(projectDir, ".env.tpl")
+	tplData, err := os.ReadFile(tplPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	setup := &Setup{
+		Context: "project",
+	}
+
+	re := regexp.MustCompile(`^export\s+([A-Za-z0-9_]+)\s*=\s*\{\{\s*(op://.+?)\s*\}\}$`)
+	for _, line := range strings.Split(string(tplData), "\n") {
+		line = strings.TrimSpace(line)
+		matches := re.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			setup.Secrets = append(setup.Secrets, Secret{
+				Key:   matches[1],
+				OPRef: matches[2],
+			})
+		}
+	}
+
+	return setup, nil
+}
+
+// WriteProjectEnvrc ensures the project-level .envrc exists and contains
+// the correct `watch_file` and `op_inject` boilerplate.
+func WriteProjectEnvrc(projectDir string, setup *Setup) error {
+	path := filepath.Join(projectDir, ".envrc")
+
+	var b strings.Builder
+	b.WriteString("# Project-level .envrc — loads secrets from .env.tpl via 1Password.\n")
+
+	if setup.InheritGlobal {
+		b.WriteString("\n# Inherit from global ~/.envrc\n")
+		b.WriteString("source_up\n")
+	}
+
+	b.WriteString("\n# Load local project-specific secrets\n")
+	b.WriteString("watch_file .env.tpl\n")
+	b.WriteString("op_inject .env.tpl\n")
+
+	return os.WriteFile(path, []byte(b.String()), 0644)
+}
+
+// PatchProjectTemplate rewrites the project-level .env.tpl, preserving
+// existing comment lines and replacing all export lines with setup.Secrets.
+func PatchProjectTemplate(projectDir string, setup *Setup) error {
+	path := filepath.Join(projectDir, ".env.tpl")
 
 	var comments []string
 	if data, err := os.ReadFile(path); err == nil {

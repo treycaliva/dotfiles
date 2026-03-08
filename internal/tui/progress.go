@@ -198,60 +198,81 @@ func (p *ProgressScreen) processNext() tea.Cmd {
 			}
 
 			// Stow the package
-			logs = append(logs, fmt.Sprintf("[%s] stowing...", pkg))
-			result := stow.Stow(state.DotfilesDir, state.HomeDir, pkg)
-			if result.Output != "" {
-				logs = append(logs, result.Output)
+			if state.Mode != ModeProject {
+			        logs = append(logs, fmt.Sprintf("[%s] stowing...", pkg))
+			        result := stow.Stow(state.DotfilesDir, state.HomeDir, pkg)
+			        if result.Output != "" {
+			                logs = append(logs, result.Output)
+			        }
+			        if result.Err != nil {
+			                logs = append(logs, fmt.Sprintf("[%s] stow failed: %v", pkg, result.Err))
+			                return installStepMsg{
+			                        pkg:  pkg,
+			                        log:  strings.Join(logs, "\n"),
+			                        done: idx >= len(state.Selected)-1,
+			                        err:  result.Err,
+			                }
+			        }
+			        logs = append(logs, fmt.Sprintf("[%s] stowed", pkg))
 			}
-			if result.Err != nil {
-				logs = append(logs, fmt.Sprintf("[%s] stow failed: %v", pkg, result.Err))
-				return installStepMsg{
-					pkg:  pkg,
-					log:  strings.Join(logs, "\n"),
-					done: idx >= len(state.Selected)-1,
-					err:  result.Err,
-				}
-			}
-			logs = append(logs, fmt.Sprintf("[%s] stowed", pkg))
-
 			// Run validation
-			if cfg.Validate != "" {
-				logs = append(logs, fmt.Sprintf("[%s] validating...", pkg))
-				vr := validate.Run(pkg, cfg.Validate)
-				if vr.Output != "" {
-					logs = append(logs, vr.Output)
-				}
-				if vr.Err != nil {
-					logs = append(logs, fmt.Sprintf("[%s] validation warning: %v", pkg, vr.Err))
-				} else {
-					logs = append(logs, fmt.Sprintf("[%s] validation passed", pkg))
-				}
+			if cfg.Validate != "" && state.Mode != ModeProject {
+			        logs = append(logs, fmt.Sprintf("[%s] validating...", pkg))
+			        vr := validate.Run(pkg, cfg.Validate)
+			        if vr.Output != "" {
+			                logs = append(logs, vr.Output)
+			        }
+			        if vr.Err != nil {
+			                logs = append(logs, fmt.Sprintf("[%s] validation warning: %v", pkg, vr.Err))
+			        } else {
+			                logs = append(logs, fmt.Sprintf("[%s] validation passed", pkg))
+			        }
 			}
-
 			// Post-stow direnv configuration (writes ~/.zshrc.local, patches template, allows .envrc).
 			if pkg == "direnv" && state.DirenvConfig != nil {
-				logs = append(logs, fmt.Sprintf("[%s] writing ~/.zshrc.local ...", pkg))
-				if err := direnv.WriteZshrcLocal(state.HomeDir, state.DirenvConfig); err != nil {
-					logs = append(logs, fmt.Sprintf("[%s] warning: could not write ~/.zshrc.local: %v", pkg, err))
-				} else {
-					logs = append(logs, fmt.Sprintf("[%s] ~/.zshrc.local updated", pkg))
-				}
+			        if state.Mode == ModeProject {
+			                logs = append(logs, fmt.Sprintf("[%s] writing project .envrc ...", pkg))
+			                if err := direnv.WriteProjectEnvrc(state.ProjectDir, state.DirenvConfig); err != nil {
+			                        logs = append(logs, fmt.Sprintf("[%s] warning: could not write project .envrc: %v", pkg, err))
+			                } else {
+			                        logs = append(logs, fmt.Sprintf("[%s] project .envrc updated", pkg))
+			                }
+			                logs = append(logs, fmt.Sprintf("[%s] patching project template ...", pkg))
+			                if err := direnv.PatchProjectTemplate(state.ProjectDir, state.DirenvConfig); err != nil {
+			                        logs = append(logs, fmt.Sprintf("[%s] warning: could not patch project template: %v", pkg, err))
+			                } else {
+			                        logs = append(logs, fmt.Sprintf("[%s] project template updated", pkg))
+			                }
 
-				logs = append(logs, fmt.Sprintf("[%s] patching template ...", pkg))
-				if err := direnv.PatchTemplate(state.HomeDir, state.DirenvConfig); err != nil {
-					logs = append(logs, fmt.Sprintf("[%s] warning: could not patch template: %v", pkg, err))
-				} else {
-					logs = append(logs, fmt.Sprintf("[%s] template updated", pkg))
-				}
+			                logs = append(logs, fmt.Sprintf("[%s] running direnv allow %s ...", pkg, state.ProjectDir))
+			                if err := direnv.AllowEnvrc(state.ProjectDir); err != nil {
+			                        logs = append(logs, fmt.Sprintf("[%s] warning: direnv allow failed: %v", pkg, err))
+			                } else {
+			                        logs = append(logs, fmt.Sprintf("[%s] direnv allow done", pkg))
+			                }
+			        } else {
+			                logs = append(logs, fmt.Sprintf("[%s] writing ~/.zshrc.local ...", pkg))
+			                if err := direnv.WriteZshrcLocal(state.HomeDir, state.DirenvConfig); err != nil {
+			                        logs = append(logs, fmt.Sprintf("[%s] warning: could not write ~/.zshrc.local: %v", pkg, err))
+			                } else {
+			                        logs = append(logs, fmt.Sprintf("[%s] ~/.zshrc.local updated", pkg))
+			                }
 
-				logs = append(logs, fmt.Sprintf("[%s] running direnv allow ~/.envrc ...", pkg))
-				if err := direnv.AllowEnvrc(state.HomeDir); err != nil {
-					logs = append(logs, fmt.Sprintf("[%s] warning: direnv allow failed: %v", pkg, err))
-				} else {
-					logs = append(logs, fmt.Sprintf("[%s] direnv allow done", pkg))
-				}
+			                logs = append(logs, fmt.Sprintf("[%s] patching template ...", pkg))
+			                if err := direnv.PatchTemplate(state.HomeDir, state.DirenvConfig); err != nil {
+			                        logs = append(logs, fmt.Sprintf("[%s] warning: could not patch template: %v", pkg, err))
+			                } else {
+			                        logs = append(logs, fmt.Sprintf("[%s] template updated", pkg))
+			                }
+
+			                logs = append(logs, fmt.Sprintf("[%s] running direnv allow ~/.envrc ...", pkg))
+			                if err := direnv.AllowEnvrc(state.HomeDir); err != nil {
+			                        logs = append(logs, fmt.Sprintf("[%s] warning: direnv allow failed: %v", pkg, err))
+			                } else {
+			                        logs = append(logs, fmt.Sprintf("[%s] direnv allow done", pkg))
+			                }
+			        }
 			}
-
 			// Post-stow git configuration (writes ~/.gitconfig.local).
 			if pkg == "git" && state.GitConfig != nil {
 				logs = append(logs, fmt.Sprintf("[%s] writing ~/.gitconfig.local ...", pkg))

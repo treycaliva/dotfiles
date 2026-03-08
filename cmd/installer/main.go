@@ -35,8 +35,17 @@ func main() {
 	}
 
 	homeDir, _ := os.UserHomeDir()
+	workingDir, _ := os.Getwd()
 
-	app := tui.NewApp(cfg, plat, dotfilesDir, homeDir)
+	// Mode selection logic: if we're not in the dotfiles repo, we're in project mode.
+	mode := tui.ModeInstall
+	if _, err := os.Stat(filepath.Join(workingDir, ".git")); err == nil {
+		if workingDir != dotfilesDir {
+			mode = tui.ModeProject
+		}
+	}
+
+	app := tui.NewApp(cfg, plat, dotfilesDir, homeDir, workingDir, mode)
 	p := tea.NewProgram(app)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
