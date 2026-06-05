@@ -102,9 +102,10 @@ alias k="kubectl"
 alias ls="ls --color=auto"
 source <(kubectl completion zsh)
 
-# NVM (lazy loading for faster shell startup)
-export NVM_LAZY_LOAD=true
-[[ -f "/Users/treycaliva/.zsh-nvm.zsh" ]] && source "/Users/treycaliva/.zsh-nvm.zsh"
+# # NVM (lazy loading for faster shell startup)
+# export NVM_LAZY_LOAD=true
+# [[ -f "/Users/treycaliva/.zsh-nvm.zsh" ]] && source "/Users/treycaliva/.zsh-nvm.zsh"
+eval "$(fnm env --use-on-cd)"
 
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
@@ -132,3 +133,7 @@ export PATH="/Users/treycaliva/.antigravity/antigravity/bin:$PATH"
 
 # Load local overrides (e.g. machine-specific aliases or exports)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+
+# Added by Antigravity CLI installer
+export PATH="/Users/treycaliva/.local/bin:$PATH"
